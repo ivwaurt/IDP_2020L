@@ -36,13 +36,14 @@ def linrgb(img,a):
     out = np.clip(out,a_min=0,a_max=255)
     return np.asarray(out, dtype='uint8' )    
     
-def valid_rect(w,h,min_area,max_area,min_ratio,max_ratio):
+def valid_rect(w,h,min_area,max_area,min_ratio,max_ratio,carea,ca_th):
     w,h = int(w),int(h)
     area = w*h
-    print(area)
-    if area>0 and area >= min_area and area <= max_area:
+    #print(area,carea)
+    if area>0 and area >= min_area and area <= max_area and carea>area*ca_th:
+        
         ratio = max(w/h,h/w)
-        print(area,ratio)
+        #print(area,carea,ratio)
         if ratio>=min_ratio and ratio<=max_ratio :
             return True
     return False
@@ -61,25 +62,23 @@ while(cap.isOpened()):
     
     #Display output
     output = frame+0
-
+    
     #Crop frame
     frame[:,crop[1]:width,:] = 0
     frame[:,0:crop[0],:] = 0
     frame[tunnel[0]:tunnel[2],tunnel[1]:tunnel[3],:] = 0   
 
-    
-    
-    
+
     #Tresholding for target
-    mask_th_tgt = linrgb(frame,[-1,2,-1,-30])
-    mask_th_tgt = cv.medianBlur(mask_th_tgt,21)
-    _,mask_th_tgt = cv.threshold(mask_th_tgt,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
+    mask_th_tgt = linrgb(frame,[-2,4,-2])
+    mask_th_tgt = cv.medianBlur(mask_th_tgt,5)
+    thresh_lower = 128
     cv.imshow('Mask_t',mask_th_tgt)
+    _,mask_th_tgt = cv.threshold(mask_th_tgt,thresh_lower,255,cv.THRESH_BINARY)
     contours,_ = cv.findContours(mask_th_tgt,cv.RETR_TREE,cv.CHAIN_APPROX_NONE)
     for contour in contours:
         (x,y,w,h) = cv.boundingRect(contour)
-        if cv.contourArea(contour)>200:
-            #print(cv.contourArea(contour))
+        if cv.contourArea(contour)>20:
             cv.rectangle(output,(x,y),(x+w,y+h),(0,255,255),3)
 
     
@@ -87,21 +86,27 @@ while(cap.isOpened()):
     
     
     #Tresholding for rectangle on AGV
-    mask_th_agv = linrgb(frame,[0,0,1])
+    '''
+    hsv_th_l = np.array([120,0,0])
+    hsv_th_u = np.array([255,255,255])
+    mask_th_agv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+    #cv.imshow('Mask_agv',mask_th_agv)
+    mask_th_agv = cv.inRange(mask_th_agv,hsv_th_l,hsv_th_u)
+    '''
+    mask_th_agv = linrgb(frame,[2,-4,2,-30])
     cv.imshow('Mask_agv',mask_th_agv)
     _,mask_th_agv = cv.threshold(mask_th_agv,0,255,cv.THRESH_BINARY)
-    mask_th_agv = cv.medianBlur(mask_th_agv,21)
+    mask_th_agv = cv.medianBlur(mask_th_agv,11)
     contours,_ = cv.findContours(mask_th_agv,cv.RETR_TREE,cv.CHAIN_APPROX_NONE)
+    
     for contour in contours:
         #Find bounding rectangle
         rect = cv.minAreaRect(contour)
         (cx,cy), (w,h), rot_angle = rect
         box = np.int0(cv.boxPoints(rect))
-        #print(w,h)
         
         #Draw box
-        if valid_rect(w,h,min_area=200,max_area=1000,min_ratio=1,max_ratio=4):
-        #if valid_rect(w,h,min_area=10000,max_area=50000,min_ratio=3,max_ratio=8):        
+        if valid_rect(w,h,min_area=300,max_area=700,min_ratio=2,max_ratio=3.5,carea=cv.contourArea(contour),ca_th=0.75):       
             cv.drawContours(output, [box], 0, (0,255,0), 3)
             if(w<h):
                 rot_angle+=90
@@ -126,6 +131,8 @@ while(cap.isOpened()):
         break
 
 out.release()
+cv.destroyAllWindows()
+
 
 #Plotting recorded data
 rect_locations = np.array(rect_locations)
