@@ -22,12 +22,6 @@ rect_locations = []
 
 
 #Functions
-def isofilter(img,index,bias):
-    img = np.asarray(img,dtype='int16')
-    out = 2*(3*img[:,:,index]-np.sum(img,axis=2))+bias
-    out = np.clip(out,a_min=0,a_max=255)
-    return np.asarray(out, dtype='uint8' )
-
 def linrgb(img,a):
     if(len(a))==3:
         a.append(0)
@@ -49,6 +43,11 @@ def valid_rect(w,h,min_area,max_area,min_ratio,max_ratio,carea,ca_th):
     return False
 
 
+#Bounding box parameters
+agv = {'w':75,'h':105,'dof':10}
+grp = {'w':90,'h':40,'dof':80}
+markerV = {'min_area':400,'max_area':700,'min_ratio':2,'max_ratio':3.5}
+markerH = {'min_area':200,'max_area':400,'min_ratio':2,'max_ratio':3.5}
 
 #Main loop in video
 while(cap.isOpened()):
@@ -99,20 +98,45 @@ while(cap.isOpened()):
     mask_th_agv = cv.medianBlur(mask_th_agv,11)
     contours,_ = cv.findContours(mask_th_agv,cv.RETR_TREE,cv.CHAIN_APPROX_NONE)
     
+    markers = []
+    
     for contour in contours:
         #Find bounding rectangle
         rect = cv.minAreaRect(contour)
         (cx,cy), (w,h), rot_angle = rect
-        box = np.int0(cv.boxPoints(rect))
+        if(w<h):
+            rot_angle+=90
+        #Test if valid rectangle
+        if valid_rect(w,h,markerV['min_area'],markerV['max_area'],markerV['min_ratio'],markerV['max_ratio'],carea=cv.contourArea(contour),ca_th=0.75):       
+            markers.append(rect)
         
-        #Draw box
-        if valid_rect(w,h,min_area=300,max_area=700,min_ratio=2,max_ratio=3.5,carea=cv.contourArea(contour),ca_th=0.75):       
-            cv.drawContours(output, [box], 0, (0,255,0), 3)
-            if(w<h):
-                rot_angle+=90
-            
-            #Writing data
-            rect_locations.append([cx,cy,rot_angle])
+    if len(markers) != 1:
+        print("Problem")
+    
+    #Box
+    rect_marker = markers[0]
+    rot_angle = rect_marker[2]
+    box = np.int0(cv.boxPoints(rect_marker))
+    
+    #Box for agv
+    rect_agv = (
+        (rect_marker[0][0]+agv['dof']*np.cos(rot_angle),rect_marker[0][1]+agv['dof']*np.sin(rot_angle)),
+        (agv['h'],agv['w']),rot_angle)
+    box_agv = np.int0(cv.boxPoints(rect_agv))
+    
+    #Box for gripper area
+    rect_grp = (
+        (rect_marker[0][0]+grp['dof']*np.cos(rot_angle),rect_marker[0][1]+grp['dof']*np.sin(rot_angle)),
+        (grp['h'],grp['w']),rot_angle)
+    box_grp = np.int0(cv.boxPoints(rect_grp))
+    
+    #Draw boxes
+    cv.drawContours(output, [box], 0, (0,255,0), 3)
+    cv.drawContours(output,[box_agv],0,(0,128,128),3)
+    cv.drawContours(output,[box_grp],0,(0,128,128),3)
+    
+    #Writing data
+    rect_locations.append([cx,cy,rot_angle])
     
     
     
