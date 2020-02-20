@@ -3,15 +3,15 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 
 #Import video
-cap = cv.VideoCapture("testvideo5.mp4")
+cap = cv.VideoCapture("testvideo7.mp4")
 #cap = cv.VideoCapture(1)
 width = int(cap.get(3))
 height =int(cap.get(4))
 print("Vid dimentions: ",width,"x",height)
 
 #Cropping parameters
-crop = [int(width*0),int(width*0.65)]
-tunnel = [int(height*0.25),int(width*0.45),int(height*0.65),int(width*0.7)]
+crop = [int(width*0.05),int(width*0.6)]
+tunnel = [int(height*0.34),int(width*0.45),int(height*0.6),int(width*0.6)]
 
 #Video writer
 fourcc = cv.VideoWriter_fourcc('M','J','P','G')
@@ -39,8 +39,10 @@ def linrgb(img,a):
 def valid_rect(w,h,min_area,max_area,min_ratio,max_ratio):
     w,h = int(w),int(h)
     area = w*h
+    print(area)
     if area>0 and area >= min_area and area <= max_area:
         ratio = max(w/h,h/w)
+        print(area,ratio)
         if ratio>=min_ratio and ratio<=max_ratio :
             return True
     return False
@@ -85,10 +87,10 @@ while(cap.isOpened()):
     
     
     #Tresholding for rectangle on AGV
-    mask_th_agv = linrgb(frame,[1,-3,1])
-    mask_th_agv = cv.medianBlur(mask_th_agv,21)
+    mask_th_agv = linrgb(frame,[0,0,1])
+    cv.imshow('Mask_agv',mask_th_agv)
     _,mask_th_agv = cv.threshold(mask_th_agv,0,255,cv.THRESH_BINARY)
-    cv.imshow('Mask',mask_th_agv)
+    mask_th_agv = cv.medianBlur(mask_th_agv,21)
     contours,_ = cv.findContours(mask_th_agv,cv.RETR_TREE,cv.CHAIN_APPROX_NONE)
     for contour in contours:
         #Find bounding rectangle
@@ -98,7 +100,7 @@ while(cap.isOpened()):
         #print(w,h)
         
         #Draw box
-        if valid_rect(w,h,min_area=750,max_area=1500,min_ratio=1,max_ratio=2):
+        if valid_rect(w,h,min_area=200,max_area=1000,min_ratio=1,max_ratio=4):
         #if valid_rect(w,h,min_area=10000,max_area=50000,min_ratio=3,max_ratio=8):        
             cv.drawContours(output, [box], 0, (0,255,0), 3)
             if(w<h):
