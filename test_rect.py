@@ -3,7 +3,7 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 
 #Import video
-cap = cv.VideoCapture("testvideo4.mp4")
+cap = cv.VideoCapture("testvideo5.mp4")
 #cap = cv.VideoCapture(1)
 width = int(cap.get(3))
 height =int(cap.get(4))
@@ -66,6 +66,8 @@ while(cap.isOpened()):
     frame[tunnel[0]:tunnel[2],tunnel[1]:tunnel[3],:] = 0   
 
     
+    
+    
     #Tresholding for target
     mask_th_tgt = linrgb(frame,[-1,2,-1,-30])
     mask_th_tgt = cv.medianBlur(mask_th_tgt,21)
@@ -79,10 +81,13 @@ while(cap.isOpened()):
             cv.rectangle(output,(x,y),(x+w,y+h),(0,255,255),3)
 
     
+    
+    
+    
     #Tresholding for rectangle on AGV
     mask_th_agv = linrgb(frame,[1,-3,1])
     mask_th_agv = cv.medianBlur(mask_th_agv,21)
-    _,mask_th_agv = cv.threshold(mask_th_agv,0,255,cv.THRESH_BINARY+cv.THRESH_OTSU)
+    _,mask_th_agv = cv.threshold(mask_th_agv,0,255,cv.THRESH_BINARY)
     cv.imshow('Mask',mask_th_agv)
     contours,_ = cv.findContours(mask_th_agv,cv.RETR_TREE,cv.CHAIN_APPROX_NONE)
     for contour in contours:
@@ -101,6 +106,9 @@ while(cap.isOpened()):
             
             #Writing data
             rect_locations.append([cx,cy,rot_angle])
+    
+    
+    
     
     #Draw cropped area
     cv.rectangle(output,(tunnel[1],tunnel[0]),(tunnel[3],tunnel[2]),(255,0,0),3)
