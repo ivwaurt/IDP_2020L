@@ -1,6 +1,7 @@
 import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
+import tkinter as tk
 
 #Import video
 cap = cv.VideoCapture("test_cir.avi")
@@ -21,6 +22,7 @@ out = cv.VideoWriter('output.avi',fourcc, 30, (width,height))
 #Recording data
 rect_locations = []
 
+#Output window
 
 #Functions
 def meanangle(*x):
@@ -134,6 +136,7 @@ while(cap.isOpened()):
         rot_angle_1 = np.arctan2(rect_marker_h[0][0]-rect_marker_v[0][0],rect_marker_h[0][1]-rect_marker_v[0][1])
         
         center = [rect_marker_v[0][0],rect_marker_v[0][1]]
+        
         #Box for agv
         rect_agv = (
             (center[0]+agv['dof']*np.sin(rot_angle_1),center[1]+agv['dof']*np.cos(rot_angle_1)),
@@ -147,18 +150,24 @@ while(cap.isOpened()):
             (grp['w'],grp['h']),-rot_angle_1 * 180/np.pi)
         box_grp = np.int0(cv.boxPoints(rect_grp))
 
+        #Line
+        line_length = 200
+        center_point = (int(center[0]),int(center[1]))
+        line_point = (int(center[0]+line_length*np.sin(rot_angle_1)),int(center[1]+line_length*np.cos(rot_angle_1)))
         
         #Draw boxes
         cv.drawContours(output, [box_v], 0, (0,255,0), 3)
         cv.drawContours(output, [box_h], 0, (0,255,0), 3)
-        cv.circle(output,(int(center[0]),int(center[1])),5,(128,128,0),10)
+        cv.circle(output,center_point,5,(128,128,0),10)
         cv.drawContours(output,[box_agv],0,(255,255,0),3)
         cv.drawContours(output,[box_grp],0,(255,255,0),3)
+        cv.line(output,center_point,line_point,(0,0,255),1)
         
     else:
         print("problem")
         print(len(markers_V),len(markers_H))
     #print("--")
+    
     #Writing data
     rect_locations.append([center[0],center[1],rot_angle_1,rect_marker_v[1][0]*rect_marker_v[1][1],rect_marker_h[1][0]*rect_marker_h[1][1]])
     
@@ -195,4 +204,3 @@ if rect_locations.ndim == 2:
     plt.plot(rect_locations[:,3])
     plt.plot(rect_locations[:,4])
     plt.show()
-	
