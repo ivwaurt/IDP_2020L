@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import tkinter as tk
 
 #Import video
-#cap = cv.VideoCapture("test_cir.avi")
+cap = cv.VideoCapture("test_cir.avi")
 #cap = cv.VideoCapture("testvideo7.mp4")
-cap = cv.VideoCapture(0)
+#cap = cv.VideoCapture(0)
 width = int(cap.get(3))
 height =int(cap.get(4))
 print("Vid dimentions: ",width,"x",height)
