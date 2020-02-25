@@ -15,13 +15,16 @@ Adafruit_DCMotor *motorR = AFMS.getMotor(2);
 //Variables
 bool sensor_l;      // 1 = white, 0 = black
 bool sensor_r;
+bool sensor_s;      // side sensors (3rd one)
 bool speed_l;       // 1 = faster, 0 = slower
 bool speed_r;
 
 //Parameters
 double tol_l = 3.00;  //Boundary between black/white
-double tol_r = 3.00;  
+double tol_r = 3.00;
+double tol_s = 3.00;  
 uint8_t v = 255;      //Motor speed
+int i=0;
 
 void setup()
 {
@@ -44,10 +47,24 @@ void loop()
   //Sensor reading to bool
   sensor_l = (analogRead(A0)>tol_l) ? 1 : 0;
   sensor_r = (analogRead(A0)>tol_r) ? 1 : 0;
+  sensor_s = (analogRead(A0)>tol_r) ? 1 : 0;
   
   //Determine motor speeds using boolean logic
   speed_l = sensor_l || sensor_r;
   speed_r = ! sensor_r;
+
+  //Set to continue during first white line, stop during second white line
+  if(sensor_s){
+    if (i==0){
+      motorL->setSpeed(v);
+      motorR->setSpeed(v);
+    }
+    else{
+      motorL->setSpeed(0);
+      motorR->setSpeed(0);
+    }
+    i++;
+  }
   
   //Set left motor speed
   if(speed_l){
@@ -62,7 +79,7 @@ void loop()
   } else {
       motorR->setSpeed(v/2);
   }
-  
+
   //Delay till next loop
   delay(500);
 }
