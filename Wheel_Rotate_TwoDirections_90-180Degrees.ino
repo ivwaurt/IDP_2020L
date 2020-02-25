@@ -11,9 +11,10 @@ Adafruit_DCMotor *myMotor = AFMS.getMotor(1);
 // You can also make another motor on port M2
 Adafruit_DCMotor *myOtherMotor = AFMS.getMotor(2);
   double R = 0.05; // Radius of wheel
-  int m_rpm = 45; // Speed of motor (in rpm)
-  double wid = 0.23; // Width of AGV (between middle of wheels)
-  double t = 15*wid*1000/(2*R*m_rpm);
+  int m_rpm = 36; // Speed of motor (in rpm)
+  double wid = 0.22; // Width of AGV (between middle of wheels)
+  double t = 2*15*wid*1000/(2*R*m_rpm);
+  int i=128;
   //int t=1000
 void setup() {
   Serial.begin(9600);           // set up Serial library at 9600 bps
@@ -24,8 +25,8 @@ void setup() {
   //AFMS.begin(1000);  // OR with a different frequency, say 1KHz
 
   // Set the speed to start, from 0 (off) to 255 (max speed)
-  myMotor->setSpeed(255);
-  myOtherMotor->setSpeed(255);
+  myMotor->setSpeed(i);
+  myOtherMotor->setSpeed(i);
   myMotor->run(FORWARD);
   myOtherMotor->run(FORWARD);
    // turn on motor
@@ -34,8 +35,9 @@ void setup() {
 }
 
 void loop() {
-  uint8_t i=255;
   Serial.print("tick");
+  
+  //rotate 90 degrees
   myMotor->run(FORWARD);
   myOtherMotor->run(BACKWARD);
   myMotor->setSpeed(i);
@@ -55,6 +57,8 @@ void loop() {
   myMotor->run(RELEASE);
   myOtherMotor->run(RELEASE);
   delay(1000);
+
+  //rotate 180 degrees
   myMotor->run(FORWARD);
   myOtherMotor->run(BACKWARD);
   myMotor->setSpeed(i);
@@ -74,6 +78,8 @@ void loop() {
   myMotor->run(RELEASE);
   myOtherMotor->run(RELEASE);
   delay(1000);
+
+  
   //change direction of rotation
   myMotor->run(BACKWARD);
   myOtherMotor->run(FORWARD);
