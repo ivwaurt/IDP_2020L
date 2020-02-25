@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import tkinter as tk
 
 #Import video
-cap = cv.VideoCapture("test_cir.avi")
+#cap = cv.VideoCapture("test_cir.avi")
 #cap = cv.VideoCapture("testvideo7.mp4")
-#cap = cv.VideoCapture(1)
+cap = cv.VideoCapture(0)
 width = int(cap.get(3))
 height =int(cap.get(4))
 print("Vid dimentions: ",width,"x",height)
@@ -57,7 +57,7 @@ def valid_rect(w,h,min_area,max_area,min_ratio,max_ratio,carea,ca_th):
 agv = {'w':65,'h':100,'dof':10}
 grp = {'w':90,'h':40,'dof':70}
 markerV = {'min_area':300,'max_area':550,'min_ratio':2,'max_ratio':3.7,'ca_th':0.75}
-markerH = {'min_area':100,'max_area':250,'min_ratio':2,'max_ratio':3.5,'ca_th':0.7}
+markerH = {'min_area':80,'max_area':250,'min_ratio':2,'max_ratio':3.5,'ca_th':0.7}
 
 
 #Main loop in video
@@ -124,7 +124,6 @@ while(cap.isOpened()):
         if valid_rect(w,h,markerH['min_area'],markerH['max_area'],markerH['min_ratio'],markerH['max_ratio'],cv.contourArea(contour),markerH['ca_th']):       
             markers_H.append(rect)
         
-    
     if len(markers_V)*len(markers_H) == 1:
         #Box
         rect_marker_v = markers_V[0]
@@ -163,13 +162,13 @@ while(cap.isOpened()):
         cv.drawContours(output,[box_grp],0,(255,255,0),3)
         cv.line(output,center_point,line_point,(0,0,255),1)
         
+        #Writing data
+        rect_locations.append([center[0],center[1],rot_angle_1,rect_marker_v[1][0]*rect_marker_v[1][1],rect_marker_h[1][0]*rect_marker_h[1][1]])
+    
     else:
         print("problem")
         print(len(markers_V),len(markers_H))
     #print("--")
-    
-    #Writing data
-    rect_locations.append([center[0],center[1],rot_angle_1,rect_marker_v[1][0]*rect_marker_v[1][1],rect_marker_h[1][0]*rect_marker_h[1][1]])
     
     #Draw cropped area
     cv.rectangle(output,(tunnel[1],tunnel[0]),(tunnel[3],tunnel[2]),(255,0,0),3)
