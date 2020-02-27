@@ -27,33 +27,30 @@ uint8_t v = 128;      //Motor speed during movement
 
 //Update motor speed
 void motor_L(int speed){
-  if (speed == speed_L){
-    return;  
-  }
-  else{
-    if (speed>=0){
-      motorL->run(FORWARD);
-    } else {
-      motorL->run(BACKWARD);
-    }
+  if (speed != speed_L){
+    motorL->run( (speed>=0) ? FORWARD : BACKWARD );
+    //if (speed>=0){
+    //  motorL->run(FORWARD);
+    //} else {
+    //  motorL->run(BACKWARD);
+    //}
     motorL->setSpeed(speed);
     speed_L = speed;
   }
 }    
 
 void motor_R(int speed){
-  if (speed == speed_R){
-    return; 
-  }else{
-    if (speed>=0){
-      motorR->run(FORWARD);
-    } else {
-      motorR->run(BACKWARD);
-    }
+  if (speed != speed_R){
+    motorR->run( (speed>=0) ? FORWARD : BACKWARD );
+    //if (speed>=0){
+    //  motorR->run(FORWARD);
+    //} else {
+    //  motorR->run(BACKWARD);
+    //}
     motorR->setSpeed(speed);
     speed_R = speed;
   }
-}    
+}     
 
 //Rotate robot x degrees clockwise
 void rotate(double angle){
