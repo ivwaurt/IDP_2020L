@@ -17,8 +17,8 @@ int speed_L;
 int speed_R;
 
 //Parameters
-double ang2t = 20.37   //time taken to rotate one degree
-double dis2t = 100     //time taken to rotate one cm
+double ang2t = 20;   //time taken to rotate one degree(20.37)
+double dis2t = 100;     //time taken to move one cm
 
 uint8_t v = 128;      //Motor speed during movement
 
@@ -28,8 +28,9 @@ uint8_t v = 128;      //Motor speed during movement
 //Update motor speed
 void motor_L(int speed){
   if (speed == speed_L){
-    return  
-  }else{
+    return;  
+  }
+  else{
     if (speed>=0){
       motorL->run(FORWARD);
     } else {
@@ -42,7 +43,7 @@ void motor_L(int speed){
 
 void motor_R(int speed){
   if (speed == speed_R){
-    return  
+    return; 
   }else{
     if (speed>=0){
       motorR->run(FORWARD);
@@ -76,18 +77,18 @@ void setup()
 {
   Serial.begin(9600);
   AFMS.begin();
-  
+  delay(2000);
   
   //Rotate 720 degrees
-  rotate(720.)
+  rotate(720.);
   
   //Wait
-  delay(2000)
+  delay(2000);
 }
 
 void loop()
 {
   //Run in a square
-  foward(50);
+  forward(30);
   rotate(90);
 }

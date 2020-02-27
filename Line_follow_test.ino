@@ -13,45 +13,24 @@ Adafruit_DCMotor *motorR = AFMS.getMotor(2);
 
 
 //Variables
-bool sensor_L;      // 1 = white, 0 = black
-bool sensor_R;
+bool sensor_l;      // 1 = white, 0 = black
+bool sensor_r;
 bool sensor_s;      // side sensors (3rd one)
-bool fast_L;       // 1 = faster, 0 = slower
-bool fast_R;
-int speed_L;
-int speed_R;
+bool speed_l;       // 1 = faster, 0 = slower
+bool speed_r;
 
 //Parameters
-double tol = 700;  //Boundary between black/white 
+double tol_l = 700;  //Boundary between black/white
+double tol_r = 700;
+//double tol_s = 3.00;  
 uint8_t v = 150;      //Motor speed
 int i=0;
 
-//Functions
-void motor_L(int speed){
-  if (speed == speed_L){
-    return  
-  }else{
-    motorL->setSpeed(speed);
-    speed_L = speed;
-  }
-}    
-
-void motor_R(int speed){
-  if (speed == speed_R){
-    return  
-  }else{
-    motorR->setSpeed(speed);
-    speed_R = speed;
-  }
-} 
-
-//Loop
 void setup()
 {
   Serial.begin(9600);
   pinMode(A0, INPUT); //left sensor as input
   pinMode(A1, INPUT); //right sensor as input
-  //pinMode(A2, INPUT); //3rd sensor as input
   AFMS.begin();
 }
 
@@ -68,40 +47,56 @@ void loop()
   motorR->run(FORWARD);
   
   //Sensor reading to bool
-  sensor_L = (analogRead(A0)>tol) ? 1 : 0;
-  sensor_R = (analogRead(A1)>tol) ? 1 : 0;
-  //sensor_s = (analogRead(A2)>tol) ? 1 : 0;
-  
-  Serial.print(sensor_L);
-  Serial.println(sensor_R);
+  //sensor_l = (analogRead(A0)>tol_l) ? 1 : 0;
+  //sensor_r = (analogRead(A0)>tol_r) ? 1 : 0;
+  if (analogRead(A0)>tol_l){
+    sensor_l = 1;
+  }
+  else{
+    sensor_l = 0;
+  }
+  if (analogRead(A1)>tol_l){
+    sensor_r = 1;
+  }
+  else{
+    sensor_r = 0;
+  }
+  Serial.print(sensor_l);
+  Serial.println(sensor_r);
   Serial.println("----");
-
+  //sensor_s = (analogRead(A0)>tol_r) ? 1 : 0;
   
   //Determine motor speeds using boolean logic
-  fast_L = sensor_L || sensor_R;
-  fast_R = !sensor_R;
+  speed_l = sensor_l || sensor_r;
+  speed_r = ! sensor_r;
+
+  //Set to continue during first white line, stop during second white line
+  //if(sensor_s){
+  //  if (i==0){
+  //    motorL->setSpeed(v);
+  //    motorR->setSpeed(v);
+  //  }
+  //  else{
+  //    motorL->setSpeed(0);
+  //    motorR->setSpeed(0);
+  //  }
+  //  i++;
+  //}
   
   //Set left motor speed
-  if(fast_L){
-      motor_L(v);
+  if(speed_l){
+      motorL->setSpeed(v);
   } else {
-      motor_L(v/4);
+      motorL->setSpeed(v/4);
   }
   
   //Set right motor speed
-  if(fast_R){
-      motor_R(v);
+  if(speed_r){
+      motorR->setSpeed(v);
   } else {
-      motor_R(v/4);
+      motorR->setSpeed(v/4);
   }
-  
+
   //Delay till next loop
   delay(250);
-  
-  //If 3rd sensor give reading, Stop
-  if(sensor_s){
-    motor_L(0);
-    motor_R(0);
-    //Set state to 1
-
 }

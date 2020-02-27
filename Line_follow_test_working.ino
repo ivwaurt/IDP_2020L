@@ -15,22 +15,23 @@ Adafruit_DCMotor *motorR = AFMS.getMotor(2);
 //Variables
 bool sensor_l;      // 1 = white, 0 = black
 bool sensor_r;
-bool sensor_s;      // side sensors (3rd one)
+bool sensor_s;      // side sensors (3rd one, at the right of AGV)
 bool speed_l;       // 1 = faster, 0 = slower
 bool speed_r;
+
 
 //Parameters
 double tol_l = 700;  //Boundary between black/white
 double tol_r = 700;
-//double tol_s = 3.00;  
-uint8_t v = 150;      //Motor speed
-int i=0;
+double tol_s = 700;  
+uint8_t v = 100;      //Motor speed
 
 void setup()
 {
   Serial.begin(9600);
   pinMode(A0, INPUT); //left sensor as input
   pinMode(A1, INPUT); //right sensor as input
+  pinMode(A2, INPUT);
   AFMS.begin();
 }
 
@@ -41,6 +42,8 @@ void loop()
   Serial.println(analogRead(A0));
   Serial.print("Right sensor: ");
   Serial.println(analogRead(A1));
+  Serial.print("Side sensor: ");
+  Serial.println(analogRead(A2));
   
   //?
   motorL->run(FORWARD);
@@ -61,42 +64,40 @@ void loop()
   else{
     sensor_r = 0;
   }
+  if (analogRead(A2)>tol_l){
+    sensor_s = 1;
+  }
+  else{
+    sensor_s = 0;
+  }
   Serial.print(sensor_l);
-  Serial.println(sensor_r);
+  Serial.print(sensor_r);
+  Serial.println(sensor_s);
   Serial.println("----");
   //sensor_s = (analogRead(A0)>tol_r) ? 1 : 0;
   
   //Determine motor speeds using boolean logic
   speed_l = sensor_l || sensor_r;
   speed_r = ! sensor_r;
-
-  //Set to continue during first white line, stop during second white line
-  //if(sensor_s){
-  //  if (i==0){
-  //    motorL->setSpeed(v);
-  //    motorR->setSpeed(v);
-  //  }
-  //  else{
-  //    motorL->setSpeed(0);
-  //    motorR->setSpeed(0);
-  //  }
-  //  i++;
-  //}
   
   //Set left motor speed
   if(speed_l){
       motorL->setSpeed(v);
   } else {
-      motorL->setSpeed(v/4);
+      motorL->setSpeed(0);
   }
   
   //Set right motor speed
   if(speed_r){
       motorR->setSpeed(v);
   } else {
-      motorR->setSpeed(v/4);
+      motorR->setSpeed(0);
   }
 
+  if(sensor_s){
+    motorL->setSpeed(0);
+    motorR->setSpeed(0);
+  }
   //Delay till next loop
-  delay(250);
+  delay(100);
 }

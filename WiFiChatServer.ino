@@ -42,6 +42,8 @@ void setup() {
     ; // wait for serial port to connect. Needed for native USB port only
   }
 
+  Serial.println("Access Point Web Server");
+
   // check for the WiFi module:
   if (WiFi.status() == WL_NO_MODULE) {
     Serial.println("Communication with WiFi module failed!");
@@ -54,27 +56,48 @@ void setup() {
     Serial.println("Please upgrade the firmware");
   }
 
-  // attempt to connect to Wifi network:
-  while (status != WL_CONNECTED) {
-    Serial.print("Attempting to connect to SSID: ");
-    Serial.println(ssid);
-    // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
-    status = WiFi.begin(ssid, pass);
+  // by default the local IP address of will be 192.168.4.1
+  // you can override it with the following:
+  // WiFi.config(IPAddress(10, 0, 0, 1));
 
-    // wait 10 seconds for connection:
-    delay(10000);
+  // print the network name (SSID);
+  Serial.print("Creating access point named: ");
+  Serial.println(ssid);
+
+  // Create open network. Change this line if you want to create an WEP network:
+  status = WiFi.beginAP(ssid, pass);
+  if (status != WL_AP_LISTENING) {
+    Serial.println("Creating access point failed");
+    // don't continue
+    while (true);
   }
 
-  // start the server:
+  // wait 10 seconds for connection:
+  delay(10000);
+
+  // start the web server on port 80
   server.begin();
-  // you're connected now, so print out the status:
-  printWifiStatus();
+
+  // you're connected now, so print out the status
+  printWiFiStatus();
 }
 
 
 void loop() {
-  // wait for a new client:
-  WiFiClient client = server.available();
+  // compare the previous status to the current status
+  if (status != WiFi.status()) {
+    // it has changed update the variable
+    status = WiFi.status();
+
+    if (status == WL_AP_CONNECTED) {
+      // a device has connected to the AP
+      Serial.println("Device connected to AP");
+    } else {
+      // a device has disconnected from the AP, and we are back in listening mode
+      Serial.println("Device disconnected from AP");
+    }
+  }
+  
 
 
   // when the client sends the first byte, say hello:
@@ -90,13 +113,15 @@ void loop() {
     }
 
     if (client.available() > 0) {
-      // read the bytes incoming from the client:
+      //read the bytes incoming from the client:
       char thisChar = client.read();
       // echo the bytes back to the client:
-      server.write(thisChar);
-      // echo the bytes to the server as well:
+      server.write("1234HELLO");
+      //echo the bytes to the server as well:
       Serial.write(thisChar);
     }
+
+    
   }
 }
 
@@ -106,14 +131,12 @@ void printWifiStatus() {
   Serial.print("SSID: ");
   Serial.println(WiFi.SSID());
 
-  // print your board's IP address:
+  // print your WiFi shield's IP address:
   IPAddress ip = WiFi.localIP();
   Serial.print("IP Address: ");
   Serial.println(ip);
 
-  // print the received signal strength:
-  long rssi = WiFi.RSSI();
-  Serial.print("signal strength (RSSI):");
-  Serial.print(rssi);
-  Serial.println(" dBm");
+  // print where to go in a browser:
+  Serial.print("To see this page in action, open a browser to http://");
+  Serial.println(ip);
 }
