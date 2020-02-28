@@ -7,9 +7,9 @@ import tkinter as tk
 #------------Initialisation-----------#
 
 #Import video
-cap = cv.VideoCapture("test_cir.avi")
-cap = cv.VideoCapture("testvideo1.mp4")
-#cap = cv.VideoCapture(0)
+#cap = cv.VideoCapture("test_cir.avi")
+#cap = cv.VideoCapture("testvideo1.mp4")
+cap = cv.VideoCapture(0)
 width = int(cap.get(3))
 height =int(cap.get(4))
 print("Vid dimentions: ",width,"x",height)
@@ -33,8 +33,11 @@ tunnel = [int(height*0.34),int(width*0.45),int(height*0.6),int(width*0.6)]
 #Bounding box parameters
 agv = {'w':65,'h':100,'dof':10}
 grp = {'w':90,'h':40,'dof':70}
-markerV = {'min_area':300,'max_area':650,'min_ratio':2,'max_ratio':4,'ca_th':0.75}
-markerH = {'min_area':80,'max_area':350,'min_ratio':2,'max_ratio':4,'ca_th':0.7}
+markerH = {'min_area':450,'max_area':800,'min_ratio':2,'max_ratio':4,'ca_th':0.75}
+markerV = {'min_area':200,'max_area':450,'min_ratio':2,'max_ratio':4,'ca_th':0.75}
+
+#markerV = {'min_area':300,'max_area':650,'min_ratio':2,'max_ratio':4,'ca_th':0.75}
+#markerH = {'min_area':80,'max_area':350,'min_ratio':2,'max_ratio':4,'ca_th':0.7}
 
 #Init variables
 center = [0,0]
@@ -157,7 +160,7 @@ while(cap.isOpened()):
         h_ratio = max(rect_marker_h[1][0]/rect_marker_h[1][1],rect_marker_h[1][1]/rect_marker_h[1][0])
         area_v = rect_marker_v[1][0]*rect_marker_v[1][1]
         area_h = rect_marker_h[1][0]*rect_marker_h[1][1]
-        
+         
         rect_infos.append([area_v,area_h])    
     else:
         print("problem")
@@ -223,5 +226,5 @@ plt.show()
 plt.plot(rect_rots)
 plt.show()
 plt.plot([i[0] for i in rect_infos])
-plt.plot([i[0] for i in rect_infos])
+plt.plot([i[1] for i in rect_infos])
 plt.show()

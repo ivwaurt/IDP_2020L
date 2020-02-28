@@ -86,6 +86,6 @@ void setup()
 void loop()
 {
   //Run in a square
-  forward(30);
+  forward(10);
   rotate(90);
 }
