@@ -17,8 +17,8 @@ Adafruit_DCMotor *motorR = AFMS.getMotor(2);
 bool sensor_l;      // 1 = white, 0 = black
 bool sensor_r;
 bool sensor_s;      // side sensors (3rd one, at the right of AGV)
-bool speed_l;       // 1 = faster, 0 = slower
-bool speed_r;
+bool speed_L;       // 1 = faster, 0 = slower
+bool speed_R;
 
 
 //Parameters
@@ -33,12 +33,12 @@ double dis2t = 100;     //time taken to move one cm
 //Update motor speed
 void motor_L(int speed){
   if (speed != speed_L){
-    motorL->run( (speed>=0) ? FORWARD : BACKWARD );
-    //if (speed>=0){
-    //  motorL->run(FORWARD);
-    //} else {
-    //  motorL->run(BACKWARD);
-    //}
+    //motorL->run( (speed>=0) ? FORWARD : BACKWARD );
+    if (speed>=0){
+      motorL->run(FORWARD);
+    } else {
+      motorL->run(BACKWARD);
+    }
     motorL->setSpeed(speed);
     speed_L = speed;
   }
@@ -46,12 +46,12 @@ void motor_L(int speed){
 
 void motor_R(int speed){
   if (speed != speed_R){
-    motorR->run( (speed>=0) ? FORWARD : BACKWARD );
-    //if (speed>=0){
-    //  motorR->run(FORWARD);
-    //} else {
-    //  motorR->run(BACKWARD);
-    //}
+    //motorR->run( (speed>=0) ? FORWARD : BACKWARD );
+    if (speed>=0){
+      motorR->run(FORWARD);
+    } else {
+      motorR->run(BACKWARD);
+    }
     motorR->setSpeed(speed);
     speed_R = speed;
   }
@@ -108,18 +108,18 @@ void loop()
   Serial.println("----");
   
   //Determine motor speeds using boolean logic
-  speed_l = sensor_l || sensor_r;
-  speed_r = ! sensor_r;
+  speed_L = sensor_l || sensor_r;
+  speed_R = ! sensor_r;
   
   //Set left motor speed
-  if(speed_l){
+  if(speed_L){
       motor_L(v);
   } else {
       motor_L(0);
   }
   
   //Set right motor speed
-  if(speed_r){
+  if(speed_R){
       motor_R(v);
   } else {
       motor_R(0);
@@ -131,9 +131,9 @@ void loop()
     motor_R(0);
     
     //Turn around
-    forward(5);
-    rotate(180);
-    forward(7);
+    //forward(5);
+    //rotate(180);
+    //forward(7);
     
   }
   //Delay till next loop

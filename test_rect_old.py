@@ -3,6 +3,7 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 import tkinter as tk
 
+
 #Import video
 cap = cv.VideoCapture("test_cir.avi")
 #cap = cv.VideoCapture("testvideo7.mp4")
@@ -132,27 +133,27 @@ while(cap.isOpened()):
         rect_marker_h = markers_H[0]
         box_h = np.int0(cv.boxPoints(rect_marker_h))
         
-        rot_angle_1 = np.arctan2(rect_marker_h[0][0]-rect_marker_v[0][0],rect_marker_h[0][1]-rect_marker_v[0][1])
+        rot_angle_1 = np.arctan2(rect_marker_h[0][1]-rect_marker_v[0][1],rect_marker_h[0][0]-rect_marker_v[0][0])
         
         center = [rect_marker_v[0][0],rect_marker_v[0][1]]
         
         #Box for agv
         rect_agv = (
-            (center[0]+agv['dof']*np.sin(rot_angle_1),center[1]+agv['dof']*np.cos(rot_angle_1)),
-            (agv['w'],agv['h']),-rot_angle_1 * 180/np.pi)
+            (center[0]+agv['dof']*np.cos(rot_angle_1),center[1]+agv['dof']*np.sin(rot_angle_1)),
+            (agv['h'],agv['w']),rot_angle_1 * 180/np.pi)
         box_agv = np.int0(cv.boxPoints(rect_agv))
         
         
         #Box for gripper area
         rect_grp = (
-            (center[0]+grp['dof']*np.sin(rot_angle_1),center[1]+grp['dof']*np.cos(rot_angle_1)),
-            (grp['w'],grp['h']),-rot_angle_1 * 180/np.pi)
+            (center[0]+grp['dof']*np.cos(rot_angle_1),center[1]+grp['dof']*np.sin(rot_angle_1)),
+            (grp['h'],grp['w']),rot_angle_1 * 180/np.pi)
         box_grp = np.int0(cv.boxPoints(rect_grp))
 
         #Line
         line_length = 200
         center_point = (int(center[0]),int(center[1]))
-        line_point = (int(center[0]+line_length*np.sin(rot_angle_1)),int(center[1]+line_length*np.cos(rot_angle_1)))
+        line_point = (int(center[0]+line_length*np.cos(rot_angle_1)),int(center[1]+line_length*np.sin(rot_angle_1)))
         
         #Draw boxes
         cv.drawContours(output, [box_v], 0, (0,255,0), 3)
