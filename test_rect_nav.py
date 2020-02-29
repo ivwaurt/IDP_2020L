@@ -48,9 +48,9 @@ markerV = {'min_area':300,'max_area':650,'min_ratio':2,'max_ratio':4,'ca_th':0.7
 markerH = {'min_area':80,'max_area':350,'min_ratio':2,'max_ratio':4,'ca_th':0.7}
 
 #Navigation parameters
-min_dist = 5
+min_dist = 60   #Note: 3.2 pixels per cm
 ang2t = 10
-tol_angle = 1
+tol_angle = 0.05
 
 #Init variables
 agv_coords = [0,0]
@@ -65,7 +65,7 @@ targets = []
 
 #Returns angle between two vectors
 def angle(v1,v2):
-    return np.arctan2(np.linalg.det([v1,v2]),np.dot(v1,v2))
+    return np.arctan2(np.linalg.det([v2,v1]),np.dot(v2,v1))
     
 def linrgb(img,a):
     if(len(a))==3:
@@ -195,28 +195,27 @@ while(cap.isOpened()):
         rect_marker_v = markers_V[0]
         rect_marker_h = markers_H[0]
         
-        #Update Rot angle
+        #Update Rot angle and coords
         rot_angle = np.arctan2(rect_marker_h[0][1]-rect_marker_v[0][1],rect_marker_h[0][0]-rect_marker_v[0][0])
-        
-        #Update AGV coords
         agv_coords = [int(rect_marker_v[0][0]),int(rect_marker_v[0][1])]
         
-        #Writing data
+        #Recording data
         v_ratio = max(rect_marker_v[1][0]/rect_marker_v[1][1],rect_marker_v[1][1]/rect_marker_v[1][0])
         h_ratio = max(rect_marker_h[1][0]/rect_marker_h[1][1],rect_marker_h[1][1]/rect_marker_h[1][0])
         area_v = rect_marker_v[1][0]*rect_marker_v[1][1]
         area_h = rect_marker_h[1][0]*rect_marker_h[1][1]
-         
-        rect_infos.append([v_ratio,h_ratio])    
+        rect_infos.append([v_ratio,h_ratio])  
+        
     else:
         print("problem")
         print("V:",len(markers_V)," H:",len(markers_H))
     
     #Drawing visuals
     draw_visuals(output,agv_coords,rot_angle)
-    cv.line(output,tuple(agv_coords),tuple(target_coords),(0,0,255),1)
+    cv.line(output,tuple(agv_coords),tuple(target_coords),(0,128,255),1)
     
     #-----Navigation------#
+    
     #Target angle
     agv_to_target = np.array(target_coords)-np.array(agv_coords)
     distance_to_target = np.linalg.norm(agv_to_target)
@@ -235,7 +234,7 @@ while(cap.isOpened()):
         motor = [0,0,0,0]
     
     #If no action, take new action
-    if action['mode'] == 'none' and action['timer'] = 0:
+    if action['mode'] == 'none' and action['timer'] == 0:
         #Insert pathfinding algorithm here
         if abs(diff_angle) < tol_angle:
             action['mode'] = 'fwd'

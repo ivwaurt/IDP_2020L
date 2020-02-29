@@ -20,7 +20,7 @@ int status = WL_IDLE_STATUS;
 
 int speed_L;
 int speed_R;
-uint8_t v = 128;      //Motor speed during movement
+uint8_t v = 70;      //Motor speed during movement
 
 //Update motor speed functions
 void motor_L(int speed){
@@ -77,7 +77,7 @@ void loop() {
     if (!alreadyConnected) {
       //New Client
       client.flush();
-      client.println("123 testing 345hello");
+      client.println("123 testing 345HELLO");
       alreadyConnected = true;
     }
 
@@ -86,11 +86,16 @@ void loop() {
       client.read(&buf , size_t 1);
       
       //0th bit = move/not move, 1st bit = reverse
-      speed_L = (((buf) & (1<<0)) ? v : 0) * (((buf) & (1<<1)) ? -1 : 1)
+      speed_L = (((buf) & (1<<0)) ? v : 0) * (((buf) & (1<<1)) ? -1 : 1);
       
       //2nd bit = move/not move, 3rd bit = reverse
-      speed_R = (((buf) & (1<<2)) ? v : 0) * (((buf) & (1<<3)) ? -1 : 1)
+      speed_R = (((buf) & (1<<2)) ? v : 0) * (((buf) & (1<<3)) ? -1 : 1);
       
+      //Setting motor speed
+      motor_L(speed_L);
+      motor_R(speed_R);
+      
+      //Send message
       server.write("1234HELLO");
       
       
