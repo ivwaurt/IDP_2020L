@@ -3,7 +3,6 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 import telnetlib
 
-
 #------------Initialisation-----------#
 
 #Import video
@@ -56,21 +55,17 @@ tol_angle = 1
 #Init variables
 agv_coords = [0,0]
 rot_angle = 0
-action = {'mode':'none','timer':0,'dir':1}
-motor = [0,0]
+action = {'mode':'none','timer':0,'dir':1}   #Mode: none,fwd,rot,stop      dir: 0:fwd, 1:rev
+motor = [0,0,0,0]   #:[Left motor On, Left motor reverse, Right motor on, Right motor reverse]
 target_coords = [0,0]
-
+targets = []
 
 
 #------------Functions-----------#
 
-def meanangle(*x):
-    s,c = 0,0
-    for i in x:
-        i *= np.pi/180
-        s += np.sin(i)
-        c += np.cos(i)
-    return np.arctan2(s,c)*180/np.pi    
+#Returns angle between two vectors
+def angle(v1,v2):
+    return np.arctan2(np.linalg.det([v1,v2]),np.dot(v1,v2))
     
 def linrgb(img,a):
     if(len(a))==3:
@@ -90,6 +85,35 @@ def valid_rect(w,h,min_area,max_area,min_ratio,max_ratio,carea,ca_th):
         if ratio>=min_ratio and ratio<=max_ratio :
             return True
     return False
+
+def draw_visuals(output,agv_coords,rot_angle):
+    #Box for agv
+    rect_agv = (
+        (agv_coords[0]+agv['dof']*np.cos(rot_angle),agv_coords[1]+agv['dof']*np.sin(rot_angle)),
+        (agv['h'],agv['w']),rot_angle * 180/np.pi)
+    box_agv = np.int0(cv.boxPoints(rect_agv))
+        
+        
+    #Box for gripper area
+    rect_grp = (
+        (agv_coords[0]+grp['dof']*np.cos(rot_angle),agv_coords[1]+grp['dof']*np.sin(rot_angle)),
+        (grp['h'],grp['w']),rot_angle * 180/np.pi)
+    box_grp = np.int0(cv.boxPoints(rect_grp))
+
+    #Line
+    line_length = 200
+    centre_point = (int(agv_coords[0]),int(agv_coords[1]))
+    line_point = (int(agv_coords[0]+line_length*np.cos(rot_angle)),int(agv_coords[1]+line_length*np.sin(rot_angle)))
+    
+    #Draw boxes
+    cv.circle(output,centre_point,5,(128,128,0),10)
+    cv.drawContours(output,[box_agv],0,(255,255,0),3)
+    cv.drawContours(output,[box_grp],0,(255,255,0),3)
+    cv.line(output,centre_point,line_point,(0,0,255),1)
+    
+    #Draw cropped area
+    cv.rectangle(output,(tunnel[1],tunnel[0]),(tunnel[3],tunnel[2]),(255,0,0),3)
+    cv.rectangle(output,(crop[0],0),(crop[1],width),(255,0,0),3)
 
 
 #------------Main Loop-----------#
@@ -122,12 +146,17 @@ while(cap.isOpened()):
     _,mask_th_tgt = cv.threshold(mask_th_tgt,thresh_lower,255,cv.THRESH_BINARY)
     contours,_ = cv.findContours(mask_th_tgt,cv.RETR_TREE,cv.CHAIN_APPROX_NONE)
     tgt_count = 0
+    targets = []
     for contour in contours:
         (x,y,w,h) = cv.boundingRect(contour)
         if cv.contourArea(contour)>20:
             tgt_count += 1
             cv.rectangle(output,(x,y),(x+w,y+h),(0,255,255),3)
-    #print(tgt_count)
+            targets.append([int(x+w/2),int(y+h/2)])
+    
+    #Sort and use leftmost
+    targets = sorted(targets, key=lambda x:x[1])
+    target_coords = targets[0]
     
     
     #-----Tresholding for AGV------#
@@ -164,15 +193,13 @@ while(cap.isOpened()):
     if len(markers_V)*len(markers_H) == 1:
         #Box
         rect_marker_v = markers_V[0]
-        box_v = np.int0(cv.boxPoints(rect_marker_v))
         rect_marker_h = markers_H[0]
-        box_h = np.int0(cv.boxPoints(rect_marker_h))
         
         #Update Rot angle
         rot_angle = np.arctan2(rect_marker_h[0][1]-rect_marker_v[0][1],rect_marker_h[0][0]-rect_marker_v[0][0])
         
         #Update AGV coords
-        agv_coords = [rect_marker_v[0][0],rect_marker_v[0][1]]
+        agv_coords = [int(rect_marker_v[0][0]),int(rect_marker_v[0][1])]
         
         #Writing data
         v_ratio = max(rect_marker_v[1][0]/rect_marker_v[1][1],rect_marker_v[1][1]/rect_marker_v[1][0])
@@ -185,81 +212,58 @@ while(cap.isOpened()):
         print("problem")
         print("V:",len(markers_V)," H:",len(markers_H))
     
-    #-----Drawing visuals------#
-    
-    #Box for agv
-    rect_agv = (
-        (agv_coords[0]+agv['dof']*np.cos(rot_angle),agv_coords[1]+agv['dof']*np.sin(rot_angle)),
-        (agv['h'],agv['w']),rot_angle * 180/np.pi)
-    box_agv = np.int0(cv.boxPoints(rect_agv))
-        
-        
-    #Box for gripper area
-    rect_grp = (
-        (agv_coords[0]+grp['dof']*np.cos(rot_angle),agv_coords[1]+grp['dof']*np.sin(rot_angle)),
-        (grp['h'],grp['w']),rot_angle * 180/np.pi)
-    box_grp = np.int0(cv.boxPoints(rect_grp))
-
-    #Line
-    line_length = 200
-    centre_point = (int(agv_coords[0]),int(agv_coords[1]))
-    line_point = (int(agv_coords[0]+line_length*np.cos(rot_angle)),int(agv_coords[1]+line_length*np.sin(rot_angle)))
-    
-    #Write info
-    rect_locs.append([agv_coords[0],agv_coords[1]])
-    rect_rots.append(rot_angle)
-    
-    #Draw boxes
-    cv.circle(output,centre_point,5,(128,128,0),10)
-    cv.drawContours(output,[box_agv],0,(255,255,0),3)
-    cv.drawContours(output,[box_grp],0,(255,255,0),3)
-    cv.line(output,centre_point,line_point,(0,0,255),1)
-    
-    #Draw cropped area
-    cv.rectangle(output,(tunnel[1],tunnel[0]),(tunnel[3],tunnel[2]),(255,0,0),3)
-    cv.rectangle(output,(crop[0],0),(crop[1],width),(255,0,0),3)
-    
+    #Drawing visuals
+    draw_visuals(output,agv_coords,rot_angle)
+    cv.line(output,tuple(agv_coords),tuple(target_coords),(0,0,255),1)
     
     #-----Navigation------#
     #Target angle
-    target_angle = np.arctan2(target_coords[0]-agv_coords[0],target_coords[1]-agv_coords[1])
-    distance_to_target = np.sqrt((target_coords[0]-agv_coords[0])**2+(target_coords[1]-agv_coords[1])**2)
+    agv_to_target = np.array(target_coords)-np.array(agv_coords)
+    distance_to_target = np.linalg.norm(agv_to_target)
+    diff_angle = angle(agv_to_target,[np.cos(rot_angle),np.sin(rot_angle)])
     
     #Break events
     if distance_to_target < min_dist:
         action['mode'] = 'stop'
-        #Move on to next sequence
+        motor = [0,0,0,0]
+        #Done .... What next?
     
     #Reset action if timer is zero
-    if action['timer'] == 0 and action['mode'] != 'stop':
+    if action['timer'] == 0 and action['mode'] in ['fwd','rot']:
         action['mode'] = 'none'
-    
-    #Set velocity for forward and rotation
-    if action['mode'] == 'fwd':
-        motor = [action['dir'],action['dir']]
-    if action['mode'] == 'rot':
-        motor = [action['dir'],-action['dir']]
+        action['timer'] = 10
+        motor = [0,0,0,0]
     
     #If no action, take new action
-    if action['mode'] == 'none':
-        if abs(rot_angle - target_angle) < tol_angle:
-            #Move forward until interrupt
+    if action['mode'] == 'none' and action['timer'] = 0:
+        #Insert pathfinding algorithm here
+        if abs(diff_angle) < tol_angle:
             action['mode'] = 'fwd'
-            action['timer'] = -1
+            action['timer'] = -1         #-1 = do forever
         else:
             #Rotate to target
             action['mode'] = 'rot'
-            action['timer'] = abs(rot_angle - target_angle) * ang2t
-            action['dir'] = np.sign(rot_angle - target_angle)
+            action['timer'] = abs(diff_angle) * ang2t
+            action['dir'] = (1-np.sign(diff_angle))/2
+    
+    #Set velocity for forward and rotation
+    if action['mode'] == 'fwd':
+        motor = [1,action['dir'],1,action['dir']/2]
+    if action['mode'] == 'rot':
+        motor = [1,action['dir'],1,1-action['dir']]
     
     #Decrement timer
     action['timer'] -= 1
     
     #-----Send signal to arduino------#
     if connection != False:
-        connection.write(("".join(motor)+"\n").encode('ascii'))
+        connection.write(bytes([ int( "".join(motor) ,2) ]))
     
     #-----Show output/save video------#
+    
+    #Write info
+    rect_locs.append([agv_coords[0],agv_coords[1]])
+    rect_rots.append(diff_angle)
     
     #Show output
     cv.imshow('output',output)

@@ -13,6 +13,16 @@ while 1:
     text = connection.read_until("HELLO".encode('ascii'),1)
     print(text)
     if text != '':
+        v = input("control motor")
+        if v=='0' :
+            byte = 0 #0000
+        elif v=='1' : 
+            byte = 10 #1010
+        elif v=='2' :
+            byte = 15 #1111
+        byte = bytes([byte])
+        print(byte)
+        connection.write(byte)
         t = t+1
-        connection.write(("Testing "+str(t)+"\n").encode('ascii'))
+        #connection.write(("Testing "+str(t)+"\n").encode('ascii'))
         time.sleep(1)

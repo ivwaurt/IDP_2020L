@@ -23,8 +23,8 @@ bool speed_R;
 
 //Parameters
 int tol = 700;          //Boundary between black/white
-int v = 100;        //Motor speed during line following
-int v_mov = 128;    ///Motor speed during rotation
+uint8_t v = 100;        //Motor speed during line following
+uint8_t v_mov = 128;    //Motor speed during rotation
 double ang2t = 20;      //time taken to rotate one degree(20.37)
 double dis2t = 100;     //time taken to move one cm
 
