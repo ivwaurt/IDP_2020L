@@ -45,20 +45,62 @@ WiFiServer server(23);
 
 boolean alreadyConnected = false; //whether or not the client was connected previously
 
-void setup() {
-  // Create open network. Change this line if you want to create an WEP network:
-  status = WiFi.beginAP(ssid, pass);
+void printWifiStatus() {
+  // print the SSID of the network you're attached to:
+  Serial.print("SSID: ");
+  Serial.println(WiFi.SSID());
 
-  // wait 10 seconds for connection:
-  delay(10000);
+  // print your board's IP address:
+  IPAddress ip = WiFi.localIP();
+  Serial.print("IP Address: ");
+  Serial.println(ip);
 
-  // start the web server on port 80
-  server.begin();
+  // print the received signal strength:
+  long rssi = WiFi.RSSI();
+  Serial.print("signal strength (RSSI):");
+  Serial.print(rssi);
+  Serial.println(" dBm");
 }
 
+void setup() {
+  //Initialize serial and wait for port to open:
+  Serial.begin(9600);
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
+  }
+
+  // check for the WiFi module:
+  if (WiFi.status() == WL_NO_MODULE) {
+    Serial.println("Communication with WiFi module failed!");
+    // don't continue
+    while (true);
+  }
+
+  String fv = WiFi.firmwareVersion();
+  if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
+    Serial.println("Please upgrade the firmware");
+  }
+
+  // attempt to connect to Wifi network:
+  while (status != WL_CONNECTED) {
+    Serial.print("Attempting to connect to SSID: ");
+    Serial.println(ssid);
+    // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
+    status = WiFi.begin(ssid, pass);
+
+    // wait 10 seconds for connection:
+    delay(10000);
+
+      // start the server:
+  server.begin();
+  // you're connected now, so print out the status:
+  printWifiStatus();
+  }
+}
 
 void loop() {
   // compare the previous status to the current status
+    WiFiClient client = server.available();
   if (status != WiFi.status()) {
     status = WiFi.status();
 
@@ -76,6 +118,7 @@ void loop() {
   if (client) {
     if (!alreadyConnected) {
       //New Client
+      Serial.print("Connected");
       client.flush();
       client.println("123 testing 345hello");
       alreadyConnected = true;
@@ -83,13 +126,18 @@ void loop() {
 
     if (client.available() > 0) {
       uint8_t buf; //Byte
-      client.read(&buf , size_t 1);
+      size_t siz=1;
+      client.read(&buf , siz);
+      Serial.print(buf);
       
       //0th bit = move/not move, 1st bit = reverse
-      speed_L = (((buf) & (1<<0)) ? v : 0) * (((buf) & (1<<1)) ? -1 : 1)
+      speed_L = (((buf) & (1<<0)) ? v : 0) * (((buf) & (1<<1)) ? -1 : 1);
       
       //2nd bit = move/not move, 3rd bit = reverse
-      speed_R = (((buf) & (1<<2)) ? v : 0) * (((buf) & (1<<3)) ? -1 : 1)
+      speed_R = (((buf) & (1<<2)) ? v : 0) * (((buf) & (1<<3)) ? -1 : 1);
+
+      Serial.print(speed_L);
+      Serial.println(speed_R);
       
       server.write("1234HELLO");
       
