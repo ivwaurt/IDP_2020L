@@ -61,9 +61,7 @@ void motor_R(int speed){
 } 
 
 int status = WL_IDLE_STATUS;
-
 WiFiServer server(23);
-
 boolean alreadyConnected = false; // whether or not the client was connected previously
 
 void setup() {
@@ -138,14 +136,6 @@ void loop() {
       Serial.println(speed_R);
       Serial.println("----");
       server.write("1234HELLO");
-      
-      /*
-      motorL->run( (speed_L>=0) ? FORWARD : BACKWARD );
-      motorR->run( (speed_R>=0) ? FORWARD : BACKWARD );
-
-      motorL->setSpeed(40);
-      motorR->setSpeed(40);
-      */
       motor_L(speed_L);
       motor_R(speed_R);
     }
