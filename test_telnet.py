@@ -3,7 +3,7 @@ import time
 
 
 
-ip = "192.168.4.1"
+ip = "192.168.43.224"
 port = 23
 conn_tout = 5
 connection = telnetlib.Telnet(ip,port,conn_tout)
@@ -13,6 +13,7 @@ while 1:
     text = connection.read_until("HELLO".encode('ascii'),1)
     print(text)
     if text != '':
+        byte = 0
         v = input("control motor")
         if v=='0' :
             byte = 0 #0000

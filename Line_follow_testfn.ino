@@ -90,8 +90,8 @@ void follow_line(bool keepRight, int count){
     if (sensor_s && !sensor_s_prev){
       count--;
       if (count <= 0){
-        speed_L = 0;
-        speed_R = 0;
+        motor_L(0);
+        motor_R(0);
         return
       }
     }

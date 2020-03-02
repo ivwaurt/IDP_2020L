@@ -30,17 +30,40 @@ bool speed_r;
 //Update motor speed
 void update_motor_speed() {
 }
-
-//Slightly rotate the robot to a direction
-void nudge(bool dir){
-    //1 = nudge right, 0 = nudge left
-}
-
 //Rotate direction (approx)
 void rotate(float angle){
     //
 }
 
+//Follow Line
+void follow_line(bool keepRight, int count){
+  pinMode(A0, INPUT); //left sensor as input
+  pinMode(A1, INPUT); //right sensor as input
+  pinMode(A2, INPUT); //Side sensor as input
+  while 1{
+    //Sensor readings
+    sensor_s_prev = sensor_s;
+    sensor_l = (analogRead(A0)>tol) ? 1 : 0;
+    sensor_r = (analogRead(A1)>tol) ? 1 : 0;
+    sensor_s = (analogRead(A2)>tol) ? 1 : 0;
+    //Determine motor speeds via boolean logic
+    speed_L = keepRight ? (sensor_l || sensor_r) : (!sensor_l);
+    speed_R = keepRight ? (!sensor_r) : (sensor_l || sensor_r);  
+    //Sensor_S
+    if (sensor_s && !sensor_s_prev){
+      count--;
+      if (count <= 0){
+        motor_L(0);
+        motor_R(0);
+        return
+      }
+    }
+    //Update speeds
+    motor_L(speed_L ? v : 0);
+    motor_R(speed_R ? v : 0);
+    delay(50);
+  }
+}
 
 
 
@@ -54,71 +77,31 @@ void setup()
   //Other important initialising
 }
 
-void loop()
-{
+void loop(){
   switch(state){
     
     //State 0: Line following
     case 0:
-      //Line following code here
+      follow_line(1,1);  //keep right and stop on 1st instance sensor_s = 1
       state = 1
     break;
     
-    
-    //State 1: Sweeping to find robot
+    //State 1: Pathfinding to target
     case 1:
-      //Rotate 90 degrees left
-      //Rotate 180 degrees right
-      //Determine robot location
-      //Send data to laptop
-      state = 2
-    break;
-    
-    
-    //State 2: Pathfinding to target
-    case 2:
       //Rotate towards target
       //Work with CV
       if target_correctype {
-        state = 3;
+        state = 2;
       } else {
         //Pathfind to next target  
       }
     break;
     
     
-    //State 3: Picking up target
-    case 3:
+    //State 2: Picking up target
+    case 2:
       //Pick up robot
-      state = 4
-    break;
-    
-    
-    //State 4: Returning to tunnel entrance
-    case 4:
-      //Pathfind back to tunnel entrance
-      state = 5
-    break;
-    
-    
-    //State 5: Line following to dumping ground
-    case 5:
-      //Line following code keep right
-      state = 6
-    break;
-    
-    
-    //State 6; Dump target
-    case 6:
-      //Dump target
-      state = 7
-      
-    break;
-    
-    
-    //State 7: Turn around and follow line to tunnel
-    case 7:
-      state = 1
+      state = 3
     break;
 }
 

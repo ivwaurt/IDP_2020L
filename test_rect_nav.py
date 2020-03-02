@@ -6,9 +6,9 @@ import telnetlib
 #------------Initialisation-----------#
 
 #Import video
-cap = cv.VideoCapture("test_cir.avi")
+#cap = cv.VideoCapture("test_cir.avi")
 #cap = cv.VideoCapture("output2.avi")
-#cap = cv.VideoCapture(0)
+cap = cv.VideoCapture(0)
 width = int(cap.get(3))
 height =int(cap.get(4))
 print("Vid dimentions: ",width,"x",height)
@@ -18,7 +18,7 @@ fourcc = cv.VideoWriter_fourcc('M','J','P','G')
 out = cv.VideoWriter('output.avi',fourcc, 30, (width,height))
 
 #Connect to arduino via telnetlib
-ip = "192.168.4.1"
+ip = "192.168.43.224"
 port = 23
 try:
     connection = telnetlib.Telnet(ip,port,5)
@@ -41,16 +41,16 @@ tunnel = [int(height*0.34),int(width*0.45),int(height*0.6),int(width*0.6)]
 #Bounding box parameters
 agv = {'w':65,'h':100,'dof':10}
 grp = {'w':90,'h':40,'dof':70}
-#markerH = {'min_area':450,'max_area':800,'min_ratio':2,'max_ratio':4.5,'ca_th':0.5}
-#markerV = {'min_area':200,'max_area':450,'min_ratio':2,'max_ratio':4.5,'ca_th':0.5}
+markerH = {'min_area':450,'max_area':800,'min_ratio':2,'max_ratio':4.5,'ca_th':0.5}
+markerV = {'min_area':200,'max_area':450,'min_ratio':2,'max_ratio':4.5,'ca_th':0.5}
 
-markerV = {'min_area':300,'max_area':650,'min_ratio':2,'max_ratio':4,'ca_th':0.75}
-markerH = {'min_area':80,'max_area':350,'min_ratio':2,'max_ratio':4,'ca_th':0.7}
+#markerV = {'min_area':300,'max_area':650,'min_ratio':2,'max_ratio':4,'ca_th':0.75}
+#markerH = {'min_area':80,'max_area':350,'min_ratio':2,'max_ratio':4,'ca_th':0.7}
 
 #Navigation parameters
-min_dist = 60   #Note: 3.2 pixels per cm
+min_dist = 75   #Note: 3.2 pixels per cm
 ang2t = 10
-tol_angle = 0.05
+tol_angle = 0.1
 
 #Init variables
 agv_coords = [0,0]
@@ -65,7 +65,7 @@ targets = []
 
 #Returns angle between two vectors
 def angle(v1,v2):
-    return np.arctan2(np.linalg.det([v2,v1]),np.dot(v2,v1))
+    return np.arctan2(np.cross(v2,v1),np.dot(v2,v1))
     
 def linrgb(img,a):
     if(len(a))==3:
@@ -156,7 +156,8 @@ while(cap.isOpened()):
     
     #Sort and use leftmost
     targets = sorted(targets, key=lambda x:x[1])
-    target_coords = targets[0]
+    if len(targets)>0:
+        target_coords = targets[0]
     
     
     #-----Tresholding for AGV------#
@@ -164,7 +165,7 @@ while(cap.isOpened()):
     mask_th_agv = linrgb(frame,[2,-4,2,0])
     mask_th_agv = cv.medianBlur(mask_th_agv,5)
     cv.imshow('Mask_agv',mask_th_agv)
-    _,mask_th_agv = cv.threshold(mask_th_agv,50,255,cv.THRESH_BINARY)
+    _,mask_th_agv = cv.threshold(mask_th_agv,30,255,cv.THRESH_BINARY)
     contours,_ = cv.findContours(mask_th_agv,cv.RETR_TREE,cv.CHAIN_APPROX_NONE)
     
     markers_V = []
@@ -233,21 +234,40 @@ while(cap.isOpened()):
         action['timer'] = 10
         motor = [0,0,0,0]
     
+    
+    if abs(diff_angle) > tol_angle and action['mode'] != 'rot':
+        action['mode'] = 'none'
+        action['timer'] = 10
+    
     #If no action, take new action
-    if action['mode'] == 'none' and action['timer'] == 0:
+    if action['mode'] == 'none' or action['timer'] <= 0:
         #Insert pathfinding algorithm here
+        '''
+        
+        if target in dead zone right and robot not in right side:
+            Rotate 90 degrees
+            Then go forward 30cm
+        elif target in dead zone left and robot not in left side:
+            Rotate -90 degrees
+            Then go forward 30cm
+        '''
+        
         if abs(diff_angle) < tol_angle:
             action['mode'] = 'fwd'
-            action['timer'] = -1         #-1 = do forever
+            action['timer'] = 10000         #-1 = do forever
+            action['dir'] = 0
         else:
             #Rotate to target
             action['mode'] = 'rot'
-            action['timer'] = abs(diff_angle) * ang2t
+            action['timer'] = int(abs(diff_angle) * ang2t)
             action['dir'] = (1-np.sign(diff_angle))/2
     
+    print(action,diff_angle,distance_to_target)
+        
+        
     #Set velocity for forward and rotation
     if action['mode'] == 'fwd':
-        motor = [1,action['dir'],1,action['dir']/2]
+        motor = [1,action['dir'],1,action['dir']]
     if action['mode'] == 'rot':
         motor = [1,action['dir'],1,1-action['dir']]
     
@@ -255,6 +275,7 @@ while(cap.isOpened()):
     action['timer'] -= 1
     
     #-----Send signal to arduino------#
+    motor = [str(int(i)) for i in motor]
     if connection != False:
         connection.write(bytes([ int( "".join(motor) ,2) ]))
     
