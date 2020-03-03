@@ -6,9 +6,9 @@ import telnetlib
 #------------Initialisation-----------#
 
 #Import video
-#cap = cv.VideoCapture("test_cir.avi")
+cap = cv.VideoCapture("test_cir.avi")
 #cap = cv.VideoCapture("output2.avi")
-cap = cv.VideoCapture(0)
+#cap = cv.VideoCapture(0)
 width = int(cap.get(3))
 height =int(cap.get(4))
 print("Vid dimentions: ",width,"x",height)
@@ -41,22 +41,24 @@ tunnel = [int(height*0.34),int(width*0.45),int(height*0.6),int(width*0.6)]
 #Bounding box parameters
 agv = {'w':65,'h':100,'dof':10}
 grp = {'w':90,'h':40,'dof':70}
-markerH = {'min_area':450,'max_area':800,'min_ratio':2,'max_ratio':4.5,'ca_th':0.5}
-markerV = {'min_area':200,'max_area':450,'min_ratio':2,'max_ratio':4.5,'ca_th':0.5}
+#markerH = {'min_area':450,'max_area':800,'min_ratio':2,'max_ratio':4.5,'ca_th':0.5}
+#markerV = {'min_area':200,'max_area':450,'min_ratio':2,'max_ratio':4.5,'ca_th':0.5}
 
-#markerV = {'min_area':300,'max_area':650,'min_ratio':2,'max_ratio':4,'ca_th':0.75}
-#markerH = {'min_area':80,'max_area':350,'min_ratio':2,'max_ratio':4,'ca_th':0.7}
+markerV = {'min_area':300,'max_area':650,'min_ratio':2,'max_ratio':4,'ca_th':0.75}
+markerH = {'min_area':80,'max_area':350,'min_ratio':2,'max_ratio':4,'ca_th':0.7}
 
 #Navigation parameters
-min_dist = 75   #Note: 3.2 pixels per cm
-ang2t = 10
-tol_angle = 0.1
+min_dist_target = 75   #Note: 3.2 pixels per cm
+ang2t = 7      #Time taken for one degree
+tol_angle = 0.2
+T_coords = [250,225]
 
 #Init variables
 agv_coords = [0,0]
 rot_angle = 0
+nav_type = 't'    #Target (t), Waypoint(w), Endpoint(e)
 action = {'mode':'none','timer':0,'dir':1}   #Mode: none,fwd,rot,stop      dir: 0:fwd, 1:rev
-motor = [0,0,0,0]   #:[Left motor On, Left motor reverse, Right motor on, Right motor reverse]
+motor = [0,0,0,0]   #Flag #:[Left motor On, Left motor reverse, Right motor on, Right motor reverse]
 target_coords = [0,0]
 targets = []
 
@@ -107,6 +109,7 @@ def draw_visuals(output,agv_coords,rot_angle):
     
     #Draw boxes
     cv.circle(output,centre_point,5,(128,128,0),10)
+    cv.circle(output,tuple(T_coords),5,(128,128,128),10)
     cv.drawContours(output,[box_agv],0,(255,255,0),3)
     cv.drawContours(output,[box_grp],0,(255,255,0),3)
     cv.line(output,centre_point,line_point,(0,0,255),1)
@@ -136,7 +139,14 @@ while(cap.isOpened()):
     frame[:,0:crop[0],:] = 0
     frame[tunnel[0]:tunnel[2],tunnel[1]:tunnel[3],:] = 0   
 
-
+    #Read input msg
+    state = -1
+    if connection != False:
+        msg = connection.read_until("HELLO".encode('ascii'))
+        if len(msg)>5: 
+            if msg[-6].isdigit():
+                state = int(msg[-6])
+        
     #-----Tresholding for target-----#
     
     mask_th_tgt = linrgb(frame,[-2,4,-2])
@@ -156,8 +166,7 @@ while(cap.isOpened()):
     
     #Sort and use leftmost
     targets = sorted(targets, key=lambda x:x[1])
-    if len(targets)>0:
-        target_coords = targets[0]
+
     
     
     #-----Tresholding for AGV------#
@@ -174,9 +183,7 @@ while(cap.isOpened()):
     for contour in contours:
         #Find bounding rectangle
         rect = cv.minAreaRect(contour)
-        (cx,cy), (w,h), rot_angle = rect
-        if(w<h):
-            rot_angle+=90
+        (cx,cy), (w,h), rot_angle_rect = rect
         #Test if valid rectangle
         if valid_rect(w,h,markerV['min_area'],markerV['max_area'],markerV['min_ratio'],markerV['max_ratio'],cv.contourArea(contour),markerV['ca_th']):       
             markers_V.append(rect)
@@ -216,6 +223,17 @@ while(cap.isOpened()):
     cv.line(output,tuple(agv_coords),tuple(target_coords),(0,128,255),1)
     
     #-----Navigation------#
+    ArrivedDestination = False
+    #print(state)
+    state = 4
+    if state == 2:        #State = 2
+        if len(targets)>0:
+            target_coords = targets[0]
+            nav_type = 't'
+    elif state == 4:  #State = 4
+        target_coords = T_coords
+        nav_type = 'w'
+    
     
     #Target angle
     agv_to_target = np.array(target_coords)-np.array(agv_coords)
@@ -223,9 +241,10 @@ while(cap.isOpened()):
     diff_angle = angle(agv_to_target,[np.cos(rot_angle),np.sin(rot_angle)])
     
     #Break events
-    if distance_to_target < min_dist:
+    if distance_to_target < min_dist_target and nav_type == 't':
         action['mode'] = 'stop'
         motor = [0,0,0,0]
+        ArrivedDestination = True
         #Done .... What next?
     
     #Reset action if timer is zero
@@ -262,7 +281,7 @@ while(cap.isOpened()):
             action['timer'] = int(abs(diff_angle) * ang2t)
             action['dir'] = (1-np.sign(diff_angle))/2
     
-    print(action,diff_angle,distance_to_target)
+    #print(action,diff_angle,distance_to_target)
         
         
     #Set velocity for forward and rotation
