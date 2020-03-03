@@ -58,7 +58,7 @@ void motor_R(int speed){
 } 
 
 void follow_line(bool keepRight, int count){
-  while 1{
+  while (1){
     //Sensor readings
     sensor_s_prev = sensor_s;
     sensor_l = (analogRead(A0)>tol) ? 1 : 0;
@@ -83,7 +83,7 @@ void follow_line(bool keepRight, int count){
   }
 }
 void reach_robot(){
-  while 1{
+  while (1){
     if (client.available() > 0) {
       // read the bytes incoming from the client:
       client.read(&buf , siz);

@@ -1,3 +1,14 @@
+#include <SPI.h>
+#include <WiFiNINA.h>
+#include <Wire.h>
+#include <Adafruit_MotorShield.h>
+
+//Motor init
+Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
+Adafruit_DCMotor *motorL = AFMS.getMotor(1);
+Adafruit_DCMotor *motorR = AFMS.getMotor(2);
+#define LM1 3       // left motor
+#define RM1 4       // right motor
 
 
 //Skeleton/Pseudo code for final robot
@@ -14,9 +25,11 @@ int state = 0; // 0 = line following, 1 = pathfinding ,2 = ....
 //Line following
 bool sensor_l;      // 1 = white, 0 = black
 bool sensor_r;
-bool sensor_s;
+bool sensor_s=0;
+bool sensor_s_prev;
 bool L_faster_LF;       // 1 = faster, 0 = slower
 bool R_faster_LF;
+double tol=700;
 
 //Wifi
 char ssid[] = "OnePlus 7 Pro";  //SSID
@@ -31,9 +44,11 @@ bool alreadyConnected = false;
 //Motor functions
 int speed_L_current=0;
 int speed_R_current=0;
-int speed_L=0;
-int speed_R=0;
-uint8_t v=128;     //Default speed
+int speed_L;
+int speed_R;
+uint8_t v=100;     //Default speed
+double ang2t = 20;      //time taken to rotate one degree(20.37)
+double dis2t = 100;     //time taken to move one cm
 
 
 //Parameters
@@ -82,12 +97,15 @@ void forward(double dist){
 
 //Follow Line
 void follow_line(bool keepRight, int count){
-  while 1{
+  while (1){
     //Sensor readings
     sensor_s_prev = sensor_s;
     sensor_l = (analogRead(A0)>tol) ? 1 : 0;
     sensor_r = (analogRead(A1)>tol) ? 1 : 0;
     sensor_s = (analogRead(A2)>tol) ? 1 : 0;
+    Serial.print(sensor_l);
+    Serial.print(sensor_r);
+    Serial.println(sensor_s);
     //Determine motor speeds via boolean logic
     L_faster_LF = keepRight ? (sensor_l || sensor_r) : (!sensor_l);
     R_faster_LF = keepRight ? (!sensor_r) : (sensor_l || sensor_r);  
@@ -97,9 +115,11 @@ void follow_line(bool keepRight, int count){
       if (count <= 0){
         motor_L(0);
         motor_R(0);
-        return
+        return;
       }
     }
+    Serial.println(R_faster_LF ? v : 0);
+    Serial.println("---");
     //Update speeds
     motor_L(L_faster_LF ? v : 0);
     motor_R(R_faster_LF ? v : 0);
@@ -129,7 +149,7 @@ void setup(){
     // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
     status = WiFi.begin(ssid, pass);
     // wait 10 seconds for connection:
-    delay(10000);
+    delay(5000);
   }
   
   //Start server
@@ -153,13 +173,18 @@ void loop(){
     }
   }
   
-  
+  Serial.println(state);
   //Switch State
   switch(state){
     //State 0: Line following
     case 0:
+      Serial.println(state);
+      motor_R(100);
       follow_line(1,1);  //keep right and stop on 1st instance sensor_s = 1
       state = 1;
+      server.write("1HELLO");
+      forward(15);
+      delay(2000);
     break;
     
     //State 1: Pathfinding to target
@@ -174,7 +199,7 @@ void loop(){
       motor_R(speed_R);
       
       if (bitRead(msg,5)){
-        state = 2
+        state = 2;
       }
       
     break;
@@ -183,16 +208,7 @@ void loop(){
     //State 2: Picking up target
     case 2:
       //Pick up robot
-      state = 3
+      state = 3;
     break;
 }
-
-
-
-
-
-
-
-
-
-
+}

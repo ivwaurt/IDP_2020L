@@ -24,15 +24,17 @@ bool speed_R;
 
 //Parameters
 int tol = 700;          //Boundary between black/white
-uint8_t v = 128;        //Motor speed during line following  
+uint8_t v = 100;        //Motor speed during line following  
 double ang2t = 20;      //time taken to rotate one degree(20.37)
 double dis2t = 100;     //time taken to move one cm
+int speed_L_current;
+int speed_R_current;
 
 //-------------Functions------------//
 
 //Update motor speed
 void motor_L(int speed){
-  if (speed != speed_L){
+  if (speed != speed_L_current){
     //motorL->run( (speed>=0) ? FORWARD : BACKWARD );
     if (speed>=0){
       motorL->run(FORWARD);
@@ -40,12 +42,12 @@ void motor_L(int speed){
       motorL->run(BACKWARD);
     }
     motorL->setSpeed(speed);
-    speed_L = speed;
+    speed_L_current = speed;
   }
 }    
 
 void motor_R(int speed){
-  if (speed != speed_R){
+  if (speed != speed_R_current){
     //motorR->run( (speed>=0) ? FORWARD : BACKWARD );
     if (speed>=0){
       motorR->run(FORWARD);
@@ -53,7 +55,7 @@ void motor_R(int speed){
       motorR->run(BACKWARD);
     }
     motorR->setSpeed(speed);
-    speed_R = speed;
+    speed_R_current = speed;
   }
 }    
 
@@ -77,7 +79,7 @@ void forward(double dist){
 
 //Follow line
 void follow_line(bool keepRight, int count){
-  while 1{
+  while (1){
     //Sensor readings
     sensor_s_prev = sensor_s;
     sensor_l = (analogRead(A0)>tol) ? 1 : 0;
@@ -92,9 +94,14 @@ void follow_line(bool keepRight, int count){
       if (count <= 0){
         speed_L = 0;
         speed_R = 0;
-        return
+        return;
       }
     }
+    Serial.print(sensor_l);
+    Serial.println(sensor_r);
+    Serial.println(speed_L);
+    Serial.println(speed_R);
+    Serial.println("------");
     //Update speeds
     motor_L(speed_L ? v : 0);
     motor_R(speed_R ? v : 0);
@@ -113,7 +120,7 @@ void setup()
   pinMode(A2, INPUT); //Side sensor as input
   AFMS.begin();
   follow_line(1,1);
-  forward(5);
+  forward(50);
 }
 
 void loop()
