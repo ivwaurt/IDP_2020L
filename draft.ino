@@ -22,6 +22,7 @@ Adafruit_DCMotor *motorR = AFMS.getMotor(2);
 //State of the robot i.e. current objective
 int state = 0; // 0 = line following, 1 = pathfinding ,2 = ....
 int counter=0;
+int pulse;
 
 //Line following
 bool sensor_l;      // 1 = white, 0 = black
@@ -290,11 +291,9 @@ void loop(){
       motor_R(100);      //check for red colour line tolerance
       follow_line(1,1);  //keep right and stop on 1st instance sensor_s = 1
       state = 5;
-      server.write("1HELLO");
       forward(5);
       delay(1000);
     break;
-<<<<<<< HEAD
       
     //State 5: Dump and reverse line follow to grey dot
     case 5:
@@ -304,24 +303,7 @@ void loop(){
       follow_line_reverse(1,1);
       state = 1;
 
-   //State 6: Return to Starting point
-=======
-    
-    //State 3: Going back to T Junction
-    case 3:
-      //To motor
-      
-      //0th bit = move/not move, 1st bit = reverse
-      speed_L = (bitRead(msg,3) ? v : 0) * (bitRead(msg,2) ? -1 : 1);
-      //2nd bit = move/not move, 3rd bit = reverse
-      speed_R = (bitRead(msg,1) ? v : 0) * (bitRead(msg,0)? -1 : 1);
-      motor_L(speed_L);
-      motor_R(speed_R);
-      
-      if (bitRead(msg,5)){
-        state = 4;
-      }
-    break;
->>>>>>> ef4a7383a9c68eab4089f27504a1530922ec13b8
+    //State 6: Return to starting point
 }
+
 }
