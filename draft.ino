@@ -219,10 +219,9 @@ void loop(){
       Serial.println(state);
       motor_R(100);
       follow_line(1,1);  //keep right and stop on 1st instance sensor_s = 1
-      state = 1;
-      server.write("1HELLO");
       forward(15);
       delay(1000);
+      state = 1;
     break;
     
     //State 1: Pathfinding to target
@@ -245,6 +244,7 @@ void loop(){
     
     //State 2: Picking up target
     case 2:
+      /*
       //Check robot pulse
       //Switch blinking LED to countinouly lit for 1 second
       //If service (red), charging (green)
@@ -265,13 +265,14 @@ void loop(){
       //python must know to delete current tested robot and proceed to the other ones
       server.write("Reverse");
       state=1;
+      */
+      state = 3
       break;
 
       
     //State 3: return to grey dot
     case 3:
       //Send signal to rotate agv and go back to grey dot
-      server.write("Return");
       //To motor
       
       //0th bit = move/not move, 1st bit = reverse
@@ -290,9 +291,9 @@ void loop(){
       Serial.println(state);
       motor_R(100);      //check for red colour line tolerance
       follow_line(1,1);  //keep right and stop on 1st instance sensor_s = 1
-      state = 5;
       forward(5);
       delay(1000);
+      state = 5;
     break;
       
     //State 5: Dump and reverse line follow to grey dot
@@ -300,10 +301,10 @@ void loop(){
       //Dump robot mechanism
       
       forward(-10);
-      follow_line_reverse(1,1);
+      rotate(180);
+      follow_line(0,2);
       state = 1;
-
-    //State 6: Return to starting point
-}
-
+  }
+  server.write(String(state));
+  server.write("HELLO");
 }
