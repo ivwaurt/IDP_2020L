@@ -21,6 +21,7 @@ Adafruit_DCMotor *motorR = AFMS.getMotor(2);
 
 //State of the robot i.e. current objective
 int state = 0; // 0 = line following, 1 = pathfinding ,2 = ....
+int counter=0;
 
 //Line following
 bool sensor_l;      // 1 = white, 0 = black
@@ -96,6 +97,37 @@ void forward(double dist){
 
 
 //Follow Line
+void follow_line_reverse(bool keepRight, int count){
+  while (1){
+    //Sensor readings
+    sensor_s_prev = sensor_s;
+    sensor_l = (analogRead(A0)>tol) ? 1 : 0;
+    sensor_r = (analogRead(A1)>tol) ? 1 : 0;
+    sensor_s = (analogRead(A2)>tol) ? 1 : 0;
+    Serial.print(sensor_l);
+    Serial.print(sensor_r);
+    Serial.println(sensor_s);
+    //Determine motor speeds via boolean logic
+    L_faster_LF = keepRight ? (sensor_l || sensor_r) : (!sensor_l);
+    R_faster_LF = keepRight ? (!sensor_r) : (sensor_l || sensor_r);  
+    //Sensor_S
+    if (sensor_s && !sensor_s_prev){
+      count--;
+      if (count <= 0){
+        motor_L(0);
+        motor_R(0);
+        return;
+      }
+    }
+    Serial.println(R_faster_LF ? v : 0);
+    Serial.println("---");
+    //Update speeds
+    motor_L(L_faster_LF ? -v : 0);
+    motor_R(R_faster_LF ? -v : 0);
+    delay(50);
+  }
+}
+
 void follow_line(bool keepRight, int count){
   while (1){
     //Sensor readings
@@ -184,7 +216,7 @@ void loop(){
       state = 1;
       server.write("1HELLO");
       forward(15);
-      delay(2000);
+      delay(1000);
     break;
     
     //State 1: Pathfinding to target
@@ -207,8 +239,65 @@ void loop(){
     
     //State 2: Picking up target
     case 2:
-      //Pick up robot
-      state = 3;
+      //Check robot pulse
+      //Switch blinking LED to countinouly lit for 1 second
+      //If service (red), charging (green)
+      if((pulse == 3) && (counter < 2)){//3 pulse robot
+        //grab robot mechanism
+
+        counter++;
+        state=3;
+        break;
+      }
+      if ((pulse == 5) && (counter > 1)){
+        //grab robot mechanism
+
+        state=3;
+        break;
+      }
+      //reverse robot back to grey dot (initial position)
+      //python must know to delete current tested robot and proceed to the other ones
+      server.write("Reverse");
+      state=1;
+      break;
+
+      
+    //State 3: return to grey dot
+    case 3:
+      //Send signal to rotate agv and go back to grey dot
+      server.write("Return");
+      //To motor
+      
+      //0th bit = move/not move, 1st bit = reverse
+      speed_L = (bitRead(msg,3) ? v : 0) * (bitRead(msg,2) ? -1 : 1);
+      //2nd bit = move/not move, 3rd bit = reverse
+      speed_R = (bitRead(msg,1) ? v : 0) * (bitRead(msg,0)? -1 : 1);
+      motor_L(speed_L);
+      motor_R(speed_R);
+      if (bitRead(msg,5)){
+        state = 4;
+      }
+      break;
+      
+    //State 4: Line follow to charging/service area
+    case 4:
+      Serial.println(state);
+      motor_R(100);      //check for red colour line tolerance
+      follow_line(1,1);  //keep right and stop on 1st instance sensor_s = 1
+      state = 5;
+      server.write("1HELLO");
+      forward(5);
+      delay(1000);
     break;
+      
+    //State 5: Dump and reverse line follow to grey dot
+    case 5:
+      //Dump robot mechanism
+      
+      forward(-10);
+      follow_line_reverse(1,1);
+      state = 1;
+
+   //State 6: Return to Starting point
 }
 }
