@@ -174,6 +174,11 @@ void loop(){
   }
   
   Serial.println(state);
+  
+  //Write state
+  //server.write(str(state)+"HELLO");
+  
+  
   //Switch State
   switch(state){
     //State 0: Line following
@@ -209,6 +214,22 @@ void loop(){
     case 2:
       //Pick up robot
       state = 3;
+    break;
+    
+    //State 3: Going back to T Junction
+    case 3:
+      //To motor
+      
+      //0th bit = move/not move, 1st bit = reverse
+      speed_L = (bitRead(msg,3) ? v : 0) * (bitRead(msg,2) ? -1 : 1);
+      //2nd bit = move/not move, 3rd bit = reverse
+      speed_R = (bitRead(msg,1) ? v : 0) * (bitRead(msg,0)? -1 : 1);
+      motor_L(speed_L);
+      motor_R(speed_R);
+      
+      if (bitRead(msg,5)){
+        state = 4;
+      }
     break;
 }
 }

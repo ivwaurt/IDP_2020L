@@ -233,15 +233,15 @@ while(cap.isOpened()):
     ArrivedDestination = False
     
     
-    state = 4
+    state = 3
     #print(state)
     
-    if state == 2:        #State = 2
+    if state == 1:        #State = 2
         if len(targets)>0:
             nav['target'] = targets[0]
             nav['type'] = 't'
     
-    elif state == 4:    #State = 4
+    elif state == 3:    #State = 4
         if nav['type'] != 'p':
             nav['target'] = [T_coords[0]-15,T_coords[1]]   #Waypoint
             nav['type'] = 'w'
@@ -259,9 +259,9 @@ while(cap.isOpened()):
     if distance_to_target < tol_dist_point and nav['type'] == 'w':
         action['mode'] = 'stop'
         motor = [0,0,0,0]
-        if state == 2:
+        if state == 1:
             nav['type'] = 't'
-        elif state == 4:
+        elif state == 3:
             nav['type'] = 'p'
     
     #Reached target
