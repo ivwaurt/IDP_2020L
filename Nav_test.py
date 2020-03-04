@@ -6,9 +6,9 @@ import telnetlib
 #------------Initialisation-----------#
 
 #Import video
-cap = cv.VideoCapture("test_cir.avi")
+#cap = cv.VideoCapture("test_cir.avi")
 #cap = cv.VideoCapture("output2.avi")
-#cap = cv.VideoCapture(0)
+cap = cv.VideoCapture(0)
 width = int(cap.get(3))
 height =int(cap.get(4))
 print("Vid dimentions: ",width,"x",height)
@@ -38,23 +38,21 @@ rect_infos = []
 crop = [19,384]
 tunnel = [163,288,288,384]
 
-print(crop,tunnel)
-
 #Bounding box parameters
-agv_COR = 1.5
+agv_COR = 1.9
 agv = {'w':65,'h':100,'dof':10}
 grp = {'w':90,'h':40,'dof':70}
-#markerH = {'min_area':450,'max_area':800,'min_ratio':2,'max_ratio':4.5,'ca_th':0.5}
-#markerV = {'min_area':200,'max_area':450,'min_ratio':2,'max_ratio':4.5,'ca_th':0.5}
+markerH = {'min_area':450,'max_area':800,'min_ratio':2,'max_ratio':4.5,'ca_th':0.5}
+markerV = {'min_area':200,'max_area':450,'min_ratio':2,'max_ratio':4.5,'ca_th':0.5}
 
-markerV = {'min_area':300,'max_area':650,'min_ratio':2,'max_ratio':4,'ca_th':0.75}
-markerH = {'min_area':80,'max_area':350,'min_ratio':2,'max_ratio':4,'ca_th':0.7}
+#markerV = {'min_area':300,'max_area':650,'min_ratio':2,'max_ratio':4,'ca_th':0.75}
+#markerH = {'min_area':80,'max_area':350,'min_ratio':2,'max_ratio':4,'ca_th':0.7}
 
 #Navigation parameters
 min_dist_target = 75   #Note: 3.2 pixels per cm
-tol_dist_point = 10
+tol_dist_point = 3
 ang2t = 7      #Time taken for one degree
-tol_angle = 0.2
+tol_angle = 0.1
 T_coords = [250,225]
 
 #Init variables
@@ -143,21 +141,24 @@ while(cap.isOpened()):
     #Crop frame
     frame[:,crop[1]:width,:] = 0
     frame[:,0:crop[0],:] = 0
-    frame[tunnel[0]:tunnel[2],tunnel[1]:tunnel[3],:] = 0   
+    #frame[tunnel[0]:tunnel[2],tunnel[1]:tunnel[3],:] = 0   
 
     #Read input msg
-    state = -1
+    state = 3
+
     if connection != False:
-        msg = connection.read_until("HELLO".encode('ascii'))
-        if len(msg)>5: 
-            if msg[-6].isdigit():
-                state = int(msg[-6])
-        
+        msg = connection.read_eager()
+        print(msg)
+        try:
+            state = int.from_bytes(msg)
+        except:
+            state = 3
+  
     #-----Tresholding for target-----#
     
     mask_th_tgt = linrgb(frame,[-2,4,-2])
     mask_th_tgt = cv.medianBlur(mask_th_tgt,5)
-    thresh_lower = 128
+    thresh_lower = 150
     cv.imshow('Mask_t',mask_th_tgt)
     _,mask_th_tgt = cv.threshold(mask_th_tgt,thresh_lower,255,cv.THRESH_BINARY)
     contours,_ = cv.findContours(mask_th_tgt,cv.RETR_TREE,cv.CHAIN_APPROX_NONE)
@@ -213,17 +214,6 @@ while(cap.isOpened()):
         rot_angle = np.arctan2(rect_marker_h[0][1]-rect_marker_v[0][1],rect_marker_h[0][0]-rect_marker_v[0][0])
         agv_coords[0] = int((1-agv_COR)*rect_marker_h[0][0]+agv_COR*rect_marker_v[0][0])
         agv_coords[1] = int((1-agv_COR)*rect_marker_h[0][1]+agv_COR*rect_marker_v[0][1])
-        
-        #Recording data
-        v_ratio = max(rect_marker_v[1][0]/rect_marker_v[1][1],rect_marker_v[1][1]/rect_marker_v[1][0])
-        h_ratio = max(rect_marker_h[1][0]/rect_marker_h[1][1],rect_marker_h[1][1]/rect_marker_h[1][0])
-        area_v = rect_marker_v[1][0]*rect_marker_v[1][1]
-        area_h = rect_marker_h[1][0]*rect_marker_h[1][1]
-        rect_infos.append([v_ratio,h_ratio])  
-        
-    else:
-        print("problem")
-        print("V:",len(markers_V)," H:",len(markers_H))
     
     #Drawing visuals
     draw_visuals(output,agv_coords,rot_angle)
@@ -232,10 +222,6 @@ while(cap.isOpened()):
     
     ArrivedDestination = False
     
-    
-    state = 3
-    #print(state)
-    
     if state == 1:        #State = 2
         if len(targets)>0:
             nav['target'] = targets[0]
@@ -243,10 +229,10 @@ while(cap.isOpened()):
     
     elif state == 3:    #State = 4
         if nav['type'] != 'p':
-            nav['target'] = [T_coords[0]-15,T_coords[1]]   #Waypoint
+            nav['target'] = [T_coords[0]-70,T_coords[1]]   #Waypoint
             nav['type'] = 'w'
         elif nav['type'] == 'p':
-            nav['target'] = T_coords   #Final point
+            nav['target'] = [T_coords[0]+250,T_coords[1]+20]   #Final point
     
     cv.line(output,tuple(agv_coords),tuple(nav['target']),(0,128,255),1)
     
@@ -254,15 +240,7 @@ while(cap.isOpened()):
     agv_to_target = np.array(nav['target'])-np.array(agv_coords)
     distance_to_target = np.linalg.norm(agv_to_target)
     diff_angle = angle(agv_to_target,[np.cos(rot_angle),np.sin(rot_angle)])
-    
-    #Reached waypoint
-    if distance_to_target < tol_dist_point and nav['type'] == 'w':
-        action['mode'] = 'stop'
-        motor = [0,0,0,0]
-        if state == 1:
-            nav['type'] = 't'
-        elif state == 3:
-            nav['type'] = 'p'
+   
     
     #Reached target
     if distance_to_target < min_dist_target and nav['type'] == 't':
@@ -276,6 +254,17 @@ while(cap.isOpened()):
         motor = [0,0,0,0]
         ArrivedDestination = True
         
+        
+    #Reached waypoint
+    motor = [0,0,0,0]
+    if distance_to_target < tol_dist_point and nav['type'] == 'w':
+        action['mode'] = 'stop'
+        motor = [0,0,0,0]
+        if state == 1:
+            nav['type'] = 't'
+        elif state == 3:
+            nav['type'] = 'p'
+            
     #Reset action if timer is zero
     if action['timer'] == 0 and action['mode'] in ['fwd','rot']:
         action['mode'] = 'none'
@@ -317,19 +306,15 @@ while(cap.isOpened()):
     if ArrivedDestination:
         motor = motor + 16
     if connection != False:
-        connection.write(bytes([motor]))
+        try:
+            connection.write(bytes([motor]))
+        except:
+            print("connection failed")
     
     #-----Show output/save video------#
     
-    #Write info
-    rect_locs.append([agv_coords[0],agv_coords[1]])
-    rect_rots.append(diff_angle)
-    
     #Show output
     cv.imshow('output',output)
-    
-    #Save video
-    out.write(output)
     
     #Press q to quit
     if cv.waitKey(1) & 0xFF == ord('q'):
@@ -343,12 +328,3 @@ while(cap.isOpened()):
 
 cap.release()
 cv.destroyAllWindows()
-
-#Plotting recorded data
-plt.plot([i[0] for i in rect_locs],[i[1] for i in rect_locs])
-plt.show()
-plt.plot(rect_rots)
-plt.show()
-plt.plot([i[0] for i in rect_infos])
-plt.plot([i[1] for i in rect_infos])
-plt.show()
