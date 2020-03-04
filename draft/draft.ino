@@ -20,14 +20,16 @@ Adafruit_DCMotor *motorR = AFMS.getMotor(2);
 //----------------------------
 
 //State of the robot i.e. current objective
-int state = 0; // 0 = line following, 1 = pathfinding ,2 = ....
+int state = 3; // 0 = line following, 1 = pathfinding ,2 = ....
 int counter=0;
 int pulse;
+String stateString;
 
 //Line following
 bool sensor_l;      // 1 = white, 0 = black
 bool sensor_r;
 bool sensor_s=0;
+int sensor_s_timer=0;
 bool sensor_s_prev;
 bool L_faster_LF;       // 1 = faster, 0 = slower
 bool R_faster_LF;
@@ -81,9 +83,9 @@ void motor_R(int speed){
 
 //Rotate robot x degrees clockwise
 void rotate(double angle){
-  motor_L(v);
-  motor_R(-v);
-  delay(angle*ang2t);
+  motor_L((angle>=0) ? v : -v);
+  motor_R((angle>=0) ? -v : v);
+  delay(abs(angle)*ang2t);
   motor_L(0);
   motor_R(0);
 }
@@ -91,7 +93,7 @@ void rotate(double angle){
 void forward(double dist){
   motor_L((dist>=0) ? v : -v);
   motor_R((dist>=0) ? v : -v);
-  delay(dist*dis2t);  
+  delay(abs(dist)*dis2t);  
   motor_L(0);
   motor_R(0);
 }
@@ -112,7 +114,7 @@ void follow_line_reverse(bool keepRight, int count){
     L_faster_LF = keepRight ? (sensor_l || sensor_r) : (!sensor_l);
     R_faster_LF = keepRight ? (!sensor_r) : (sensor_l || sensor_r);  
     //Sensor_S
-    if (sensor_s && !sensor_s_prev){
+    if (sensor_s && sensor_s_prev <= 0){
       count--;
       if (count <= 0){
         motor_L(0);
@@ -207,9 +209,7 @@ void loop(){
   }
   
   Serial.println(state);
-  
-  //Write state
-  //server.write(str(state)+"HELLO");
+ 
   
   
   //Switch State
@@ -235,7 +235,7 @@ void loop(){
       motor_L(speed_L);
       motor_R(speed_R);
       
-      if (bitRead(msg,5)){
+      if (bitRead(msg,4)){
         state = 2;
       }
       
@@ -266,32 +266,35 @@ void loop(){
       server.write("Reverse");
       state=1;
       */
-      state = 3
+      
+      state = 3;
       break;
-
+      
       
     //State 3: return to grey dot
     case 3:
       //Send signal to rotate agv and go back to grey dot
       //To motor
-      
+      sensor_l = (analogRead(A0)>tol) ? 1 : 0;
+      sensor_r = (analogRead(A1)>tol) ? 1 : 0;
+      sensor_s = (analogRead(A2)>tol) ? 1 : 0;
       //0th bit = move/not move, 1st bit = reverse
       speed_L = (bitRead(msg,3) ? v : 0) * (bitRead(msg,2) ? -1 : 1);
       //2nd bit = move/not move, 3rd bit = reverse
       speed_R = (bitRead(msg,1) ? v : 0) * (bitRead(msg,0)? -1 : 1);
       motor_L(speed_L);
       motor_R(speed_R);
-      if (bitRead(msg,5)){
+      if (sensor_r && sensor_l){
         state = 4;
+        forward(5);
       }
       break;
       
     //State 4: Line follow to charging/service area
     case 4:
       Serial.println(state);
-      motor_R(100);      //check for red colour line tolerance
       follow_line(1,1);  //keep right and stop on 1st instance sensor_s = 1
-      forward(5);
+      forward(10);
       delay(1000);
       state = 5;
     break;
@@ -300,11 +303,10 @@ void loop(){
     case 5:
       //Dump robot mechanism
       
-      forward(-10);
-      rotate(180);
+      rotate(-180);
       follow_line(0,2);
       state = 1;
   }
-  server.write(String(state));
-  server.write("HELLO");
+  stateString = String(state);
+  server.write(state);
 }
