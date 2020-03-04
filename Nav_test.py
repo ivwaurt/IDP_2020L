@@ -20,11 +20,7 @@ out = cv.VideoWriter('output.avi',fourcc, 30, (width,height))
 #Connect to arduino via telnetlib
 ip = "192.168.43.224"
 port = 23
-try:
-    connection = telnetlib.Telnet(ip,port,5)
-except:
-    connection = False
-
+connection = False
 
 
 #------------Parameters-----------#
@@ -132,8 +128,12 @@ while(cap.isOpened()):
     if frame is None:
         break
     
-    #Save video
-    #out.write(frame)
+    #Attempt to connect to arduino
+    if connection == False:
+        try:
+            connection = telnetlib.Telnet(ip,port,5)
+        except:
+            connection = False
     
     #Display output
     output = frame+0
@@ -141,7 +141,7 @@ while(cap.isOpened()):
     #Crop frame
     frame[:,crop[1]:width,:] = 0
     frame[:,0:crop[0],:] = 0
-    #frame[tunnel[0]:tunnel[2],tunnel[1]:tunnel[3],:] = 0   
+    frame[tunnel[0]:tunnel[2],tunnel[1]:tunnel[3],:] = 0   
 
     #Read input msg
     state = 3
@@ -149,10 +149,11 @@ while(cap.isOpened()):
     if connection != False:
         msg = connection.read_eager()
         print(msg)
-        try:
-            state = int.from_bytes(msg)
-        except:
-            state = 3
+        if len(msg)>0:
+            try:
+                state = msg[-1]
+            except:
+                connection = False
   
     #-----Tresholding for target-----#
     
@@ -309,6 +310,7 @@ while(cap.isOpened()):
         try:
             connection.write(bytes([motor]))
         except:
+            connection = False
             print("connection failed")
     
     #-----Show output/save video------#
