@@ -80,16 +80,18 @@ void forward(double dist){
 //Follow line
 void follow_line(bool keepRight, int count){
   while (1){
+    Serial.println("abc");
     //Sensor readings
     sensor_s_prev = sensor_s;
     sensor_l = (analogRead(A0)>tol) ? 1 : 0;
     sensor_r = (analogRead(A1)>tol) ? 1 : 0;
     sensor_s = (analogRead(A2)>tol) ? 1 : 0;
+    Serial.println("def");
     //Determine motor speeds via boolean logic
     speed_L = keepRight ? (sensor_l || sensor_r) : (!sensor_l);
     speed_R = keepRight ? (!sensor_r) : (sensor_l || sensor_r);  
     //Sensor_S
-    if (sensor_s && !sensor_s_prev){
+    if (sensor_s && !sensor_s_prev && 0){
       count--;
       if (count <= 0){
         speed_L = 0;
@@ -97,6 +99,9 @@ void follow_line(bool keepRight, int count){
         return;
       }
     }
+    Serial.println(analogRead(A0));
+    Serial.println(analogRead(A1));
+    Serial.println(analogRead(A2));
     Serial.print(sensor_l);
     Serial.println(sensor_r);
     Serial.println(speed_L);
@@ -105,7 +110,7 @@ void follow_line(bool keepRight, int count){
     //Update speeds
     motor_L(speed_L ? v : 0);
     motor_R(speed_R ? v : 0);
-    delay(50);
+    delay(2000);
   }
 }
 
@@ -115,6 +120,7 @@ void follow_line(bool keepRight, int count){
 void setup()
 {
   Serial.begin(9600);
+  Serial.println("start");
   pinMode(A0, INPUT); //left sensor as input
   pinMode(A1, INPUT); //right sensor as input
   pinMode(A2, INPUT); //Side sensor as input

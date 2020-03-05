@@ -27,10 +27,10 @@ bool speed_R;
 //Parameters
 int tol = 700;          //Boundary between black/white
 uint8_t v = 128;        //Motor speed during line following
-uint8_t v_m = 255;  
+uint8_t v_m = 128;  
 double ang2t = 20;      //time taken to rotate one degree(20.37)
-double ang2t_ml = 5;
-double ang2t_mr = 13.5;
+double ang2t_ml = 10.5;
+double ang2t_mr = 35;
 double dis2t = 100;     //time taken to move one cm
 
 //-------------Functions------------//
@@ -82,42 +82,48 @@ void forward(double dist){
 
 void grabber_R(int angle){
   Serial.println("RIGHT");
-  motorGrR->setSpeed(v_m);
   if (angle>0){
     motorGrR->run(BACKWARD);
   } else {
     motorGrR->run(FORWARD);
   }
+  motorGrR->setSpeed(v_m);
   delay(abs(angle)*ang2t_mr);
   motorGrR->setSpeed(0);
 }
 
 void grabber_L(int angle){
   Serial.println("LEFT");
-  motorGrL->setSpeed(v_m);
   if (angle>0){
     motorGrL->run(BACKWARD);
   } else {
     motorGrL->run(FORWARD);
   }
+  motorGrL->setSpeed(v_m);
   delay(abs(angle)*ang2t_ml);
   motorGrL->setSpeed(0);
 }
 
 void grab(){
   Serial.println("TESTGRAB");
+  delay(3000);
   //forward(-10);
   grabber_R(90);
+  delay(3000);
   grabber_L(120);
+  delay(3000);
   //forward(10);
-  grabber_R(-80);
+  grabber_R(-70);
+  delay(3000);
   grabber_R(3);
-  grabber_L(-100);
-  grabber_R(-13);
+  delay(3000);
+  grabber_L(-120);
+  delay(3000);
+  grabber_R(-25);
 }
 
 //Follow line
-void follow_line(bool keepRight, int count){
+/*void follow_line(bool keepRight, int count){
   while (1){
     //Sensor readings
     sensor_s_prev = sensor_s;
@@ -142,7 +148,7 @@ void follow_line(bool keepRight, int count){
     delay(50);
   }
 }
-
+*/
 
 
 //Setup and loop 
@@ -154,8 +160,7 @@ void setup()
   pinMode(A2, INPUT); //Side sensor as input
   AFMS.begin();
   grab();
-  forward(5);
-  delay(5000);
+  //forward(5);
 }
 
 void loop()

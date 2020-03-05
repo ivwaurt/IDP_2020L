@@ -20,7 +20,7 @@ Adafruit_DCMotor *motorR = AFMS.getMotor(2);
 //----------------------------
 
 //State of the robot i.e. current objective
-int state = 3; // 0 = line following, 1 = pathfinding ,2 = ....
+int state = 0; // 0 = line following, 1 = pathfinding ,2 = ....
 int counter=0;
 int pulse;
 String stateString;
@@ -183,7 +183,7 @@ void setup(){
     Serial.println(ssid);
     // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
     status = WiFi.begin(ssid, pass);
-    // wait 10 seconds for connection:
+    // wait 5 seconds for connection:
     delay(5000);
   }
   
@@ -192,6 +192,19 @@ void setup(){
 }
 
 void loop(){
+  if (status != WL_CONNECTED){
+    motor_L(0);
+    motor_R(0);
+      while (status != WL_CONNECTED) {
+      Serial.print("Attempting to connect to SSID: ");
+      Serial.println(ssid);
+      // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
+      status = WiFi.begin(ssid, pass);
+      // wait 5 seconds for connection:
+      delay(5000);
+    }
+    server.begin();
+  }
   //Read connection
   WiFiClient client = server.available();
   if (client) {
@@ -287,6 +300,7 @@ void loop(){
       if (sensor_r && sensor_l){
         state = 4;
         forward(5);
+        delay(5000);
       }
       break;
       
