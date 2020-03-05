@@ -7,6 +7,8 @@
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
 Adafruit_DCMotor *motorL = AFMS.getMotor(1);
 Adafruit_DCMotor *motorR = AFMS.getMotor(2);
+Adafruit_DCMotor *motorGrL = AFMS.getMotor(3);
+Adafruit_DCMotor *motorGrR = AFMS.getMotor(4);
 #define LM1 3       // left motor
 #define RM1 4       // right motor
 
@@ -53,6 +55,9 @@ int speed_R;
 uint8_t v=100;     //Default speed
 double ang2t = 20;      //time taken to rotate one degree(20.37)
 double dis2t = 100;     //time taken to move one cm
+uint8_t v_m = 128;  
+double ang2t_ml = 10.5;
+double ang2t_mr = 35;
 
 
 //Parameters
@@ -98,39 +103,32 @@ void forward(double dist){
   motor_R(0);
 }
 
-
-//Follow Line
-void follow_line_reverse(bool keepRight, int count){
-  while (1){
-    //Sensor readings
-    sensor_s_prev = sensor_s;
-    sensor_l = (analogRead(A0)>tol) ? 1 : 0;
-    sensor_r = (analogRead(A1)>tol) ? 1 : 0;
-    sensor_s = (analogRead(A2)>tol) ? 1 : 0;
-    Serial.print(sensor_l);
-    Serial.print(sensor_r);
-    Serial.println(sensor_s);
-    //Determine motor speeds via boolean logic
-    L_faster_LF = keepRight ? (sensor_l || sensor_r) : (!sensor_l);
-    R_faster_LF = keepRight ? (!sensor_r) : (sensor_l || sensor_r);  
-    //Sensor_S
-    if (sensor_s && sensor_s_prev <= 0){
-      count--;
-      if (count <= 0){
-        motor_L(0);
-        motor_R(0);
-        return;
-      }
-    }
-    Serial.println(R_faster_LF ? v : 0);
-    Serial.println("---");
-    //Update speeds
-    motor_L(L_faster_LF ? -v : 0);
-    motor_R(R_faster_LF ? -v : 0);
-    delay(50);
+void grabber_R(int angle){
+  Serial.println("RIGHT");
+  if (angle>0){
+    motorGrR->run(BACKWARD);
+  } else {
+    motorGrR->run(FORWARD);
   }
+  motorGrR->setSpeed(v_m);
+  delay(abs(angle)*ang2t_mr);
+  motorGrR->setSpeed(0);
 }
 
+void grabber_L(int angle){
+  Serial.println("LEFT");
+  if (angle>0){
+    motorGrL->run(BACKWARD);
+  } else {
+    motorGrL->run(FORWARD);
+  }
+  motorGrL->setSpeed(v_m);
+  delay(abs(angle)*ang2t_ml);
+  motorGrL->setSpeed(0);
+}
+
+
+//Follow Line
 void follow_line(bool keepRight, int count){
   while (1){
     //Sensor readings
@@ -160,6 +158,24 @@ void follow_line(bool keepRight, int count){
     motor_R(R_faster_LF ? v : 0);
     delay(50);
   }
+}
+
+void grab(){
+  Serial.println("TESTGRAB");
+  delay(1000);
+  //forward(-10);
+  grabber_R(90);
+  delay(2000);
+  grabber_L(120);
+  delay(2000);
+  //forward(10);
+  grabber_R(-70);
+  delay(2000);
+  grabber_R(3);
+  delay(2000);
+  grabber_L(-120);
+  delay(2000);
+  grabber_R(-25);
 }
 
 
@@ -263,14 +279,14 @@ void loop(){
       //If service (red), charging (green)
       if((pulse == 3) && (counter < 2)){//3 pulse robot
         //grab robot mechanism
-
+          grab();
         counter++;
         state=3;
         break;
       }
       if ((pulse == 5) && (counter > 1)){
         //grab robot mechanism
-
+        grab();
         state=3;
         break;
       }
