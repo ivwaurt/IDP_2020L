@@ -45,7 +45,7 @@ markerV = {'min_area':200,'max_area':450,'min_ratio':2,'max_ratio':4.5,'ca_th':0
 #markerH = {'min_area':80,'max_area':350,'min_ratio':2,'max_ratio':4,'ca_th':0.7}
 
 #Navigation parameters
-min_dist_target = 75   #Note: 3.2 pixels per cm
+min_dist_target = 10   #Note: 3.2 pixels per cm
 tol_dist_point = 3
 ang2t = 7      #Time taken for one degree
 tol_angle = 0.1
@@ -61,7 +61,7 @@ action = {'mode':'none','timer':0,'dir':1}   #Mode: none,fwd,rot,stop      dir: 
 nav = {'type':'t','target' : [0,0]} #Target (t), Waypoint(w), Endpoint(e)
 
 targets = []
-
+state = -1
 
 #------------Functions-----------#
 
@@ -131,9 +131,10 @@ while(cap.isOpened()):
     #Attempt to connect to arduino
     if connection == False:
         try:
-            connection = telnetlib.Telnet(ip,port,5)
+            connection = telnetlib.Telnet(ip,port,1)
         except:
             connection = False
+            print("No Connection")
     
     #Display output
     output = frame+0
@@ -144,16 +145,14 @@ while(cap.isOpened()):
     frame[tunnel[0]:tunnel[2],tunnel[1]:tunnel[3],:] = 0   
 
     #Read input msg
-    state = 3
-
+    prevstate = state + 0
     if connection != False:
-        msg = connection.read_eager()
-        print(msg)
-        if len(msg)>0:
-            try:
+        try:
+            msg = connection.read_eager()
+            if len(msg)>0:
                 state = msg[-1]
-            except:
-                connection = False
+        except:
+            connection = False
   
     #-----Tresholding for target-----#
     
@@ -220,15 +219,16 @@ while(cap.isOpened()):
     draw_visuals(output,agv_coords,rot_angle)
     
     #-----Navigation------#
-    
+    if state != prevstate:
+        print(state)
     ArrivedDestination = False
     
-    if state == 1:        #State = 2
+    if state == 1:        #State = 1
         if len(targets)>0:
             nav['target'] = targets[0]
             nav['type'] = 't'
     
-    elif state == 3:    #State = 4
+    elif state == 3:    #State = 3
         if nav['type'] != 'p':
             nav['target'] = [T_coords[0]-70,T_coords[1]]   #Waypoint
             nav['type'] = 'w'
@@ -241,7 +241,7 @@ while(cap.isOpened()):
     agv_to_target = np.array(nav['target'])-np.array(agv_coords)
     distance_to_target = np.linalg.norm(agv_to_target)
     diff_angle = angle(agv_to_target,[np.cos(rot_angle),np.sin(rot_angle)])
-   
+    #print(action,diff_angle,distance_to_target)
     
     #Reached target
     if distance_to_target < min_dist_target and nav['type'] == 't':
@@ -290,7 +290,6 @@ while(cap.isOpened()):
             action['timer'] = int(abs(diff_angle) * ang2t)
             action['dir'] = (1-np.sign(diff_angle))/2
     
-    #print(action,diff_angle,distance_to_target)
         
         
     #Set velocity for forward and rotation
@@ -306,6 +305,7 @@ while(cap.isOpened()):
     motor = int("".join( [str(int(i)) for i in motor] ),2)
     if ArrivedDestination:
         motor = motor + 16
+    print(state,motor)
     if connection != False:
         try:
             connection.write(bytes([motor]))
