@@ -22,7 +22,7 @@ Adafruit_DCMotor *motorGrR = AFMS.getMotor(4);
 //----------------------------
 
 //State of the robot i.e. current objective
-int state = 3; // 0 = line following, 1 = pathfinding ,2 = ....
+int state = 0; // 0 = line following, 1 = pathfinding ,2 = ....
 int counter=0;
 int pulse;
 String stateString;

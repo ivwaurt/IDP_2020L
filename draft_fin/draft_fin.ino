@@ -351,7 +351,10 @@ void loop(){
       dump();
       rotate(-190);
       follow_line(0,2);
+      forward(15);
+      delay(1000);
       state = 1;
+      msg=0;
   }
   stateString = String(state);
   server.write(state);

@@ -106,10 +106,10 @@ void grabber_L(int angle){
 
 void grab(){
   Serial.println("TESTGRAB");
-  forward(-15);
+  //forward(-15);
   grabber_R(90);
   grabber_L(120);
-  forward(20);
+  //forward(20);
   grabber_R(-70);
   grabber_R(6);
   grabber_L(-120);
@@ -119,7 +119,7 @@ void grab(){
 
 void dump(){
   grabber_R(90);
-  forward(-20);
+  //forward(-20);
   grabber_R(-90);
 }
 
@@ -160,9 +160,9 @@ void setup()
   pinMode(A1, INPUT); //right sensor as input
   pinMode(A2, INPUT); //Side sensor as input
   AFMS.begin();
-  //grab();
-  forward(-20);
-  forward(20);
+  grab();
+  //forward(-20);
+  //forward(20);
   dump();
   //forward(5);
 }
