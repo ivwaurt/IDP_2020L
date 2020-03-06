@@ -3,10 +3,10 @@
 #include <Wire.h>
 #include <Adafruit_MotorShield.h>
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
-Adafruit_DCMotor *motorL = AFMS.getMotor(5);
-Adafruit_DCMotor *motorR = AFMS.getMotor(6);
-Adafruit_DCMotor *motorGrL = AFMS.getMotor(1);
-Adafruit_DCMotor *motorGrR = AFMS.getMotor(2);
+Adafruit_DCMotor *motorL = AFMS.getMotor(1);
+Adafruit_DCMotor *motorR = AFMS.getMotor(2);
+Adafruit_DCMotor *motorGrL = AFMS.getMotor(3);
+Adafruit_DCMotor *motorGrR = AFMS.getMotor(4);
 
 //change motor voltage 
 
@@ -44,7 +44,7 @@ void motor_L(int speed){
     } else {
       motorL->run(BACKWARD);
     }
-    motorL->setSpeed(speed);
+    motorL->setSpeed(abs(speed));
     speed_L = speed;
   }
 }    
@@ -57,7 +57,7 @@ void motor_R(int speed){
     } else {
       motorR->run(BACKWARD);
     }
-    motorR->setSpeed(speed);
+    motorR->setSpeed(abs(speed));
     speed_R = speed;
   }
 }    
@@ -66,7 +66,7 @@ void motor_R(int speed){
 void rotate(double angle){
   motor_L(v);
   motor_R(-v);
-  delay(angle*ang2t);
+  delay(abs(angle)*ang2t);
   motor_L(0);
   motor_R(0);
 }
@@ -75,7 +75,7 @@ void rotate(double angle){
 void forward(double dist){
   motor_L((dist>=0) ? v : -v);
   motor_R((dist>=0) ? v : -v);
-  delay(dist*dis2t);  
+  delay(abs(dist)*dis2t);  
   motor_L(0);
   motor_R(0);
 }
@@ -106,20 +106,21 @@ void grabber_L(int angle){
 
 void grab(){
   Serial.println("TESTGRAB");
-  delay(3000);
-  //forward(-10);
+  forward(-15);
   grabber_R(90);
-  delay(3000);
   grabber_L(120);
-  delay(3000);
-  //forward(10);
+  forward(20);
   grabber_R(-70);
-  delay(3000);
-  grabber_R(3);
-  delay(3000);
+  grabber_R(6);
   grabber_L(-120);
-  delay(3000);
-  grabber_R(-25);
+  delay(1000);
+  grabber_R(-35);
+}
+
+void dump(){
+  grabber_R(90);
+  forward(-20);
+  grabber_R(-90);
 }
 
 //Follow line
@@ -159,11 +160,14 @@ void setup()
   pinMode(A1, INPUT); //right sensor as input
   pinMode(A2, INPUT); //Side sensor as input
   AFMS.begin();
-  grab();
+  //grab();
+  forward(-20);
+  forward(20);
+  dump();
   //forward(5);
 }
 
 void loop()
 {
-  rotate(0);
+  Serial.println("123");
 }

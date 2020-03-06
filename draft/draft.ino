@@ -22,7 +22,7 @@ Adafruit_DCMotor *motorGrR = AFMS.getMotor(4);
 //----------------------------
 
 //State of the robot i.e. current objective
-int state = 0; // 0 = line following, 1 = pathfinding ,2 = ....
+int state = 3; // 0 = line following, 1 = pathfinding ,2 = ....
 int counter=0;
 int pulse;
 String stateString;
@@ -40,7 +40,7 @@ double tol=700;
 //Wifi
 char ssid[] = "OnePlus 7 Pro";  //SSID
 char pass[] = "11123456";       //password
-uint8_t msg;
+uint8_t msg=0;
 uint8_t buf;       //Byte
 size_t siz = 1;
 int status = WL_IDLE_STATUS;
@@ -52,8 +52,8 @@ int speed_L_current=0;
 int speed_R_current=0;
 int speed_L;
 int speed_R;
-uint8_t v=100;     //Default speed
-double ang2t = 20;      //time taken to rotate one degree(20.37)
+uint8_t v=128;     //Default speed
+double ang2t = 24;      //time taken to rotate one degree(20.37)
 double dis2t = 100;     //time taken to move one cm
 uint8_t v_m = 128;  
 double ang2t_ml = 10.5;
@@ -162,22 +162,22 @@ void follow_line(bool keepRight, int count){
 
 void grab(){
   Serial.println("TESTGRAB");
-  delay(1000);
-  //forward(-10);
+  forward(-15);
   grabber_R(90);
-  delay(2000);
   grabber_L(120);
-  delay(2000);
-  //forward(10);
+  forward(20);
   grabber_R(-70);
-  delay(2000);
-  grabber_R(3);
-  delay(2000);
+  grabber_R(6);
   grabber_L(-120);
-  delay(2000);
-  grabber_R(-25);
+  delay(1000);
+  grabber_R(-35);
 }
 
+void dump(){
+  grabber_R(90);
+  forward(-20);
+  grabber_R(-90);
+}
 
 
 
@@ -265,7 +265,10 @@ void loop(){
       motor_R(speed_R);
       
       if (bitRead(msg,4)){
+        motor_L(0);
+        motor_R(0);
         state = 2;
+        delay(1000);
       }
       
     break;
@@ -273,29 +276,29 @@ void loop(){
     
     //State 2: Picking up target
     case 2:
-      /*
-      //Check robot pulse
+      
+      /*//Check robot pulse
       //Switch blinking LED to countinouly lit for 1 second
       //If service (red), charging (green)
-      if((pulse == 3) && (counter < 2)){//3 pulse robot
+      //if((pulse == 3) && (counter < 2)){//3 pulse robot
         //grab robot mechanism
           grab();
-        counter++;
+        //counter++;
         state=3;
         break;
       }
-      if ((pulse == 5) && (counter > 1)){
+      //if ((pulse == 5) && (counter > 1)){
         //grab robot mechanism
-        grab();
-        state=3;
-        break;
+        //grab();
+        //state=3;
+        //break;
       }
       //reverse robot back to grey dot (initial position)
       //python must know to delete current tested robot and proceed to the other ones
-      server.write("Reverse");
-      state=1;
+      //server.write("Reverse");
+      //state=1;
       */
-      
+      grab();
       state = 3;
       break;
       
@@ -313,27 +316,30 @@ void loop(){
       speed_R = (bitRead(msg,1) ? v : 0) * (bitRead(msg,0)? -1 : 1);
       motor_L(speed_L);
       motor_R(speed_R);
-      if (sensor_r && sensor_l){
+      if (sensor_r || sensor_l){
         state = 4;
-        forward(5);
-        delay(5000);
+        motor_L(0);
+        motor_R(0);
       }
       break;
       
     //State 4: Line follow to charging/service area
     case 4:
       Serial.println(state);
+      delay(10000);
+      forward(10);
+      delay(5000);
       follow_line(1,1);  //keep right and stop on 1st instance sensor_s = 1
       forward(10);
       delay(1000);
       state = 5;
-    break;
+      break;
       
     //State 5: Dump and reverse line follow to grey dot
     case 5:
       //Dump robot mechanism
-      
-      rotate(-180);
+      dump();
+      rotate(-190);
       follow_line(0,2);
       state = 1;
   }

@@ -17,7 +17,7 @@ int speed_L;
 int speed_R;
 
 //Parameters
-double ang2t = 20;   //time taken to rotate one degree(20.37)
+double ang2t = 23.2;   //time taken to rotate one degree(20.37)
 double dis2t = 100;     //time taken to move one cm
 
 uint8_t v = 128;      //Motor speed during movement
