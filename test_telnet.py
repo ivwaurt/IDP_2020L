@@ -5,25 +5,39 @@ import time
 
 ip = "192.168.43.224"
 port = 23
-conn_tout = 5
-connection = telnetlib.Telnet(ip,port,conn_tout)
+connection = False
+msg = -1
 
-t=0
 while 1:
-    text = connection.read_until("HELLO".encode('ascii'),1)
-    print(text)
-    if text != '':
-        byte = 0
-        v = input("control motor")
-        if v=='0' :
-            byte = 0 #0000
-        elif v=='1' : 
-            byte = 10 #1010
-        elif v=='2' :
-            byte = 15 #1111
-        byte = bytes([byte])
-        print(byte)
-        connection.write(byte)
-        t = t+1
-        #connection.write(("Testing "+str(t)+"\n").encode('ascii'))
-        time.sleep(1)
+    print(connection)
+    
+    
+    #Try to connect
+    if connection == False:
+        print("Trying to reconnect")
+        try:
+            connection = telnetlib.Telnet(ip,port,2)
+        except:
+            connection = False
+            print("No Connection")
+            
+            
+    #Try to read message
+    if connection != False:
+        try:
+            msg = connection.read_eager()
+        except:
+            connection = False
+    print(msg)
+    
+    
+    #Try to write message
+    motor = 14
+    try:
+        connection.write(bytes([motor]))
+    except:
+        connection = False
+        print("Message failed to send")
+    
+    #Simulate waiting for next frame
+    time.sleep(0.3)
