@@ -375,7 +375,10 @@ void loop(){
         delay(1000);
       }
     
-    //State 8 or more: end
+    //State 8: end
+    case 8:
+        //do nothing
+        break;
     
   }
   server.write(state);
