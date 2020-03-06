@@ -45,14 +45,14 @@ markerV = {'min_area':200,'max_area':450,'min_ratio':2,'max_ratio':4.5,'ca_th':0
 #markerH = {'min_area':80,'max_area':350,'min_ratio':2,'max_ratio':4,'ca_th':0.7}
 
 #Navigation parameters
-min_dist_target = 10   #Note: 3.2 pixels per cm
+min_dist_target = 90   #Note: 3.2 pixels per cm
 tol_dist_point = 3
 ang2t = 7      #Time taken for one degree
 tol_angle = 0.1
 T_coords = [250,225]
 
 #Init variables
-agv_coords = [0,0]
+agv_coords = [0,440]
 rot_angle = 0
 motor = [0,0,0,0]   #Flag #:[Left motor On, Left motor reverse, Right motor on, Right motor reverse]
 
@@ -129,9 +129,11 @@ while(cap.isOpened()):
         break
     
     #Attempt to connect to arduino
+    print(connection)
     if connection == False:
+        print("Trying to reconnect")
         try:
-            connection = telnetlib.Telnet(ip,port,1)
+            connection = telnetlib.Telnet(ip,port,2)
         except:
             connection = False
             print("No Connection")
@@ -181,7 +183,7 @@ while(cap.isOpened()):
     mask_th_agv = linrgb(frame,[2,-4,2,0])
     mask_th_agv = cv.medianBlur(mask_th_agv,5)
     cv.imshow('Mask_agv',mask_th_agv)
-    _,mask_th_agv = cv.threshold(mask_th_agv,30,255,cv.THRESH_BINARY)
+    _,mask_th_agv = cv.threshold(mask_th_agv,50,255,cv.THRESH_BINARY)
     contours,_ = cv.findContours(mask_th_agv,cv.RETR_TREE,cv.CHAIN_APPROX_NONE)
     
     markers_V = []
@@ -214,6 +216,9 @@ while(cap.isOpened()):
         rot_angle = np.arctan2(rect_marker_h[0][1]-rect_marker_v[0][1],rect_marker_h[0][0]-rect_marker_v[0][0])
         agv_coords[0] = int((1-agv_COR)*rect_marker_h[0][0]+agv_COR*rect_marker_v[0][0])
         agv_coords[1] = int((1-agv_COR)*rect_marker_h[0][1]+agv_COR*rect_marker_v[0][1])
+    else:
+        pass
+        #print("problem v,h",len(markers_V),len(markers_H))
     
     #Drawing visuals
     draw_visuals(output,agv_coords,rot_angle)
@@ -233,7 +238,7 @@ while(cap.isOpened()):
             nav['target'] = [T_coords[0]-70,T_coords[1]]   #Waypoint
             nav['type'] = 'w'
         elif nav['type'] == 'p':
-            nav['target'] = [T_coords[0]+250,T_coords[1]+20]   #Final point
+            nav['target'] = [T_coords[0]+250,T_coords[1]]   #Final point
     
     cv.line(output,tuple(agv_coords),tuple(nav['target']),(0,128,255),1)
     
@@ -250,7 +255,7 @@ while(cap.isOpened()):
         ArrivedDestination = True
     
     #Reached final point
-    if distance_to_target < tol_dist_point and nav['type'] == 'p':
+    if distance_to_target < tol_dist_point and nav['type'] == 'p' and state == 1:
         action['mode'] = 'stop'
         motor = [0,0,0,0]
         ArrivedDestination = True
@@ -301,17 +306,21 @@ while(cap.isOpened()):
     #Decrement timer
     action['timer'] -= 1
     
+    if state not in [1,3]:
+        ArrivedDestination = 0
+    
     #-----Send signal to arduino------#
     motor = int("".join( [str(int(i)) for i in motor] ),2)
     if ArrivedDestination:
         motor = motor + 16
-    print(state,motor)
-    if connection != False:
+        print("Arrived destination",state,"_",distance_to_target)
+    print(state,motor,bytes([motor]),distance_to_target,ArrivedDestination)
+    if state != -1:
         try:
             connection.write(bytes([motor]))
         except:
             connection = False
-            print("connection failed")
+            print("Message failed to send")
     
     #-----Show output/save video------#
     
