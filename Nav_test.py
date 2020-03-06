@@ -62,6 +62,7 @@ nav = {'type':'t','target' : [0,0]} #Target (t), Waypoint(w), Endpoint(e)
 
 targets = []
 state = -1
+allTargetsCollected = False
 
 #------------Functions-----------#
 
@@ -224,22 +225,33 @@ while(cap.isOpened()):
     draw_visuals(output,agv_coords,rot_angle)
     
     #-----Navigation------#
+    
     if state != prevstate:
         print(state)
+    
+    motor = [0,0,0,0]
     ArrivedDestination = False
     
+    #Set target
     if state == 1:        #State = 1
         if len(targets)>0:
             nav['target'] = targets[0]
             nav['type'] = 't'
-    
-    elif state == 3:    #State = 3
+        else:
+            allTargetsCollected = True
+   
+    if state == 3:    #State = 3
         if nav['type'] != 'p':
             nav['target'] = [T_coords[0]-70,T_coords[1]]   #Waypoint
             nav['type'] = 'w'
-        elif nav['type'] == 'p':
+        else:
             nav['target'] = [T_coords[0]+250,T_coords[1]]   #Final point
     
+    if state == 7:
+        nav['target'] = [T_coords[0]-70,T_coords[1]]
+        nav['type'] = 'p'
+    
+    #Draw line to target
     cv.line(output,tuple(agv_coords),tuple(nav['target']),(0,128,255),1)
     
     #Target angle
@@ -255,14 +267,12 @@ while(cap.isOpened()):
         ArrivedDestination = True
     
     #Reached final point
-    if distance_to_target < tol_dist_point and nav['type'] == 'p' and state == 1:
+    if distance_to_target < tol_dist_point and nav['type'] == 'p':
         action['mode'] = 'stop'
         motor = [0,0,0,0]
         ArrivedDestination = True
         
-        
     #Reached waypoint
-    motor = [0,0,0,0]
     if distance_to_target < tol_dist_point and nav['type'] == 'w':
         action['mode'] = 'stop'
         motor = [0,0,0,0]
@@ -305,16 +315,20 @@ while(cap.isOpened()):
     
     #Decrement timer
     action['timer'] -= 1
-    
-    if state not in [1,3]:
-        ArrivedDestination = 0
+    if state not in [1,3,7]:
+        ArrivedDestination = False
     
     #-----Send signal to arduino------#
     motor = int("".join( [str(int(i)) for i in motor] ),2)
+    
     if ArrivedDestination:
-        motor = motor + 16
-        print("Arrived destination",state,"_",distance_to_target)
+        motor += 16   #Set 5th bit to high
+    
+    if allTargetsCollected:
+        motor += 32   #Set 6th bit to high
+    
     print(state,motor,bytes([motor]),distance_to_target,ArrivedDestination)
+    
     if state != -1:
         try:
             connection.write(bytes([motor]))
@@ -335,7 +349,7 @@ while(cap.isOpened()):
 
 
 
-#-----Terminate sequence and plot data------#
+#-----Terminate sequence------#
 
 cap.release()
 cv.destroyAllWindows()

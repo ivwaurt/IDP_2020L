@@ -25,7 +25,8 @@ Adafruit_DCMotor *motorGrR = AFMS.getMotor(4);
 int state = 3; // 0 = line following, 1 = pathfinding ,2 = ....
 int counter=0;
 int pulse;
-String stateString;
+int targetsCollected = 0;
+bool target3Pulse;
 
 //Line following
 bool sensor_l;      // 1 = white, 0 = black
@@ -128,12 +129,11 @@ void grabber_L(int angle){
 }
 
 
-//Follow Line
+//Line Follower
 void follow_line(bool keepRight, int count){
   sensor_s_timer = 0;
   while (1){
     //Sensor readings
-    sensor_s_prev = sensor_s;
     sensor_l = (analogRead(A0)>tol) ? 1 : 0;
     sensor_r = (analogRead(A1)>tol) ? 1 : 0;
     sensor_s = (analogRead(A2)>tol) ? 1 : 0;
@@ -158,8 +158,8 @@ void follow_line(bool keepRight, int count){
   }
 }
 
+//Grabber
 void grab(){
-  Serial.println("TESTGRAB");
   forward(-15);
   grabber_R(90);
   grabber_L(120);
@@ -177,6 +177,10 @@ void dump(){
   grabber_R(-90);
 }
 
+//Pulse counter
+void findpulse(){
+  return 1;
+}
 
 
 //Actual code in robot
@@ -207,6 +211,7 @@ void setup(){
 
 void loop(){
   
+  //Wifi stuff
   if (status != WiFi.status()) {
     status = WiFi.status();
   }
@@ -242,11 +247,9 @@ void loop(){
     }
   }
   
-  Serial.println(state);
- 
   
+  //Switch statement based on current state of the robot
   
-  //Switch State
   switch(state){
     //State 0: Line following
     case 0:
@@ -258,10 +261,10 @@ void loop(){
       state = 1;
     break;
     
+    
     //State 1: Pathfinding to target
     case 1:
-      //To motor
-      
+      //Set motor speeds based on inputs
       //0th bit = move/not move, 1st bit = reverse
       speed_L = (bitRead(msg,3) ? v : 0) * (bitRead(msg,2) ? -1 : 1);
       //2nd bit = move/not move, 3rd bit = reverse
@@ -269,6 +272,7 @@ void loop(){
       motor_L(speed_L);
       motor_R(speed_R);
       
+      //Termination condition
       if (bitRead(msg,4)){
         motor_L(0);
         motor_R(0);
@@ -281,38 +285,23 @@ void loop(){
     
     //State 2: Picking up target
     case 2:
-      
-      /*//Check robot pulse
-      //Switch blinking LED to countinouly lit for 1 second
-      //If service (red), charging (green)
-      //if((pulse == 3) && (counter < 2)){//3 pulse robot
-        //grab robot mechanism
-          grab();
-        //counter++;
-        state=3;
-        break;
+      //Check Robot pulse
+      target3Pulse = findpulse();
+      if ( (target3Pulse && targetsCollected <2) || (targetsCollected>=2)) {
+        //Grab
+        grab()
+        targetsCollected++;
+        state = 3;
+      } else {
+        state = 7;
       }
-      //if ((pulse == 5) && (counter > 1)){
-        //grab robot mechanism
-        //grab();
-        //state=3;
-        //break;
-      }
-      //reverse robot back to grey dot (initial position)
-      //python must know to delete current tested robot and proceed to the other ones
-      //server.write("Reverse");
-      //state=1;
-      */
-      
-      grab();
-      state = 3;
       break;
       
       
     //State 3: return to grey dot
     case 3:
       //Send signal to rotate agv and go back to grey dot
-      //To motor
+      //Sensor readings
       sensor_l = (analogRead(A0)>tol) ? 1 : 0;
       sensor_r = (analogRead(A1)>tol) ? 1 : 0;
       sensor_s = (analogRead(A2)>tol) ? 1 : 0;
@@ -325,6 +314,7 @@ void loop(){
       motor_L(speed_L);
       motor_R(speed_R);
       
+      //End condition
       if (sensor_r || sensor_l){
         state = 4;
         motor_L(0);
@@ -334,7 +324,6 @@ void loop(){
       
     //State 4: Line follow to charging/service area
     case 4:
-      Serial.println(state);
       delay(1000);
       forward(10);
       delay(1000);
@@ -342,20 +331,55 @@ void loop(){
       follow_line(1,1);  //keep right and stop on 1st instance sensor_s = 1
       forward(10);
       delay(1000);
-      state = 5;
-      break;
-      
-    //State 5: Dump and reverse line follow to grey dot
-    case 5:
       //Dump robot mechanism
       dump();
       rotate(-190);
+      
+      //If all target collected, go to state 6
+      targetsCollected = 4;  // Set all targets colleted for now
+      
+      if (targetsCollected >= 4){
+        state = 6;
+      } else {
+        state = 5;
+      }
+      break;
+      
+    //State 5: Line follow to grey dot
+    case 5:
       follow_line(0,2);
       forward(15);
       delay(1000);
       state = 1;
       msg=0;
+    
+    //State 6: End- Return to starting area
+    case 6:
+      follow_line(0,1);
+      forward(15);
+      follow_line(1,1);
+      forward(10);
+      state = 8;
+    
+    //State 7 Return to grey dot and try again
+    case 7:
+      //0th bit = move/not move, 1st bit = reverse
+      speed_L = (bitRead(msg,3) ? v : 0) * (bitRead(msg,2) ? -1 : 1);
+      //2nd bit = move/not move, 3rd bit = reverse
+      speed_R = (bitRead(msg,1) ? v : 0) * (bitRead(msg,0)? -1 : 1);
+      motor_L(speed_L);
+      motor_R(speed_R);
+      
+      //Termination condition
+      if (bitRead(msg,4)){
+        motor_L(0);
+        motor_R(0);
+        state = 1;
+        delay(1000);
+      }
+    
+    //State 8 or more: end
+    
   }
-  stateString = String(state);
   server.write(state);
 }

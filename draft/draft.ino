@@ -22,7 +22,7 @@ Adafruit_DCMotor *motorGrR = AFMS.getMotor(4);
 //----------------------------
 
 //State of the robot i.e. current objective
-int state = 0; // 0 = line following, 1 = pathfinding ,2 = ....
+int state = 3; // 0 = line following, 1 = pathfinding ,2 = ....
 int counter=0;
 int pulse;
 String stateString;
@@ -45,7 +45,7 @@ uint8_t buf;       //Byte
 size_t siz = 1;
 int status = WL_IDLE_STATUS;
 WiFiServer server(23);
-bool alreadyConnected = false; 
+bool alreadyConnected;
 
 //Motor functions
 int speed_L_current=0;
@@ -130,29 +130,27 @@ void grabber_L(int angle){
 
 //Follow Line
 void follow_line(bool keepRight, int count){
+  sensor_s_timer = 0;
   while (1){
     //Sensor readings
     sensor_s_prev = sensor_s;
     sensor_l = (analogRead(A0)>tol) ? 1 : 0;
     sensor_r = (analogRead(A1)>tol) ? 1 : 0;
     sensor_s = (analogRead(A2)>tol) ? 1 : 0;
-    Serial.print(sensor_l);
-    Serial.print(sensor_r);
-    Serial.println(sensor_s);
     //Determine motor speeds via boolean logic
     L_faster_LF = keepRight ? (sensor_l || sensor_r) : (!sensor_l);
     R_faster_LF = keepRight ? (!sensor_r) : (sensor_l || sensor_r);  
     //Sensor_S
-    if (sensor_s && !sensor_s_prev){
+    if (sensor_s && sensor_s_timer<=0){
       count--;
       if (count <= 0){
         motor_L(0);
         motor_R(0);
         return;
       }
+      sensor_s_timer = 50;
     }
-    Serial.println(R_faster_LF ? v : 0);
-    Serial.println("---");
+    sensor_s_timer --;
     //Update speeds
     motor_L(L_faster_LF ? v : 0);
     motor_R(R_faster_LF ? v : 0);
@@ -208,6 +206,11 @@ void setup(){
 }
 
 void loop(){
+  
+  if (status != WiFi.status()) {
+    status = WiFi.status();
+  }
+  
   if (status != WL_CONNECTED){
     motor_L(0);
     motor_R(0);
@@ -220,7 +223,9 @@ void loop(){
       delay(5000);
     }
     server.begin();
+    alreadyConnected = false; 
   }
+  
   //Read connection
   WiFiClient client = server.available();
   if (client) {
@@ -298,6 +303,7 @@ void loop(){
       //server.write("Reverse");
       //state=1;
       */
+      
       grab();
       state = 3;
       break;
@@ -310,12 +316,15 @@ void loop(){
       sensor_l = (analogRead(A0)>tol) ? 1 : 0;
       sensor_r = (analogRead(A1)>tol) ? 1 : 0;
       sensor_s = (analogRead(A2)>tol) ? 1 : 0;
+      
       //0th bit = move/not move, 1st bit = reverse
       speed_L = (bitRead(msg,3) ? v : 0) * (bitRead(msg,2) ? -1 : 1);
       //2nd bit = move/not move, 3rd bit = reverse
       speed_R = (bitRead(msg,1) ? v : 0) * (bitRead(msg,0)? -1 : 1);
+      
       motor_L(speed_L);
       motor_R(speed_R);
+      
       if (sensor_r || sensor_l){
         state = 4;
         motor_L(0);
@@ -326,9 +335,10 @@ void loop(){
     //State 4: Line follow to charging/service area
     case 4:
       Serial.println(state);
-      delay(10000);
+      delay(1000);
       forward(10);
-      delay(5000);
+      delay(1000);
+      rotate(10);
       follow_line(1,1);  //keep right and stop on 1st instance sensor_s = 1
       forward(10);
       delay(1000);
@@ -341,7 +351,10 @@ void loop(){
       dump();
       rotate(-190);
       follow_line(0,2);
+      forward(15);
+      delay(1000);
       state = 1;
+      msg=0;
   }
   stateString = String(state);
   server.write(state);
