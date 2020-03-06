@@ -23,17 +23,14 @@ Adafruit_DCMotor *motorGrR = AFMS.getMotor(4);
 
 //State of the robot i.e. current objective
 int state = 3; // 0 = line following, 1 = pathfinding ,2 = ....
-int counter=0;
-int pulse;
 int targetsCollected = 0;
 bool target3Pulse;
 
 //Line following
 bool sensor_l;      // 1 = white, 0 = black
 bool sensor_r;
-bool sensor_s=0;
+bool sensor_s;
 int sensor_s_timer=0;
-bool sensor_s_prev;
 bool L_faster_LF;       // 1 = faster, 0 = slower
 bool R_faster_LF;
 double tol=700;
@@ -45,25 +42,25 @@ uint8_t msg=0;
 uint8_t buf;       //Byte
 size_t siz = 1;
 int status = WL_IDLE_STATUS;
-WiFiServer server(23);
 bool alreadyConnected;
 
-//Motor functions
+WiFiServer server(23);
+
+//Motor variables
 int speed_L_current=0;
 int speed_R_current=0;
 int speed_L;
 int speed_R;
 uint8_t v=128;     //Default speed
+
+//Motor parameters
 double ang2t = 24;      //time taken to rotate one degree(20.37)
 double dis2t = 100;     //time taken to move one cm
 uint8_t v_m = 128;  
+//Gripper calibration
 double ang2t_ml = 10.5;
 double ang2t_mr = 35;
 
-
-//Parameters
-//----------------------------
-//Wifi
 
 
 //Functions
@@ -86,9 +83,9 @@ void motor_R(int speed){
   }
 } 
 
-
-//Rotate robot x degrees clockwise
+//Rotation and move forward
 void rotate(double angle){
+  //Angle +ve clockwise
   motor_L((angle>=0) ? v : -v);
   motor_R((angle>=0) ? -v : v);
   delay(abs(angle)*ang2t);
@@ -97,35 +94,12 @@ void rotate(double angle){
 }
 
 void forward(double dist){
+  //dist +ve forward
   motor_L((dist>=0) ? v : -v);
   motor_R((dist>=0) ? v : -v);
   delay(abs(dist)*dis2t);  
   motor_L(0);
   motor_R(0);
-}
-
-void grabber_R(int angle){
-  Serial.println("RIGHT");
-  if (angle>0){
-    motorGrR->run(BACKWARD);
-  } else {
-    motorGrR->run(FORWARD);
-  }
-  motorGrR->setSpeed(v_m);
-  delay(abs(angle)*ang2t_mr);
-  motorGrR->setSpeed(0);
-}
-
-void grabber_L(int angle){
-  Serial.println("LEFT");
-  if (angle>0){
-    motorGrL->run(BACKWARD);
-  } else {
-    motorGrL->run(FORWARD);
-  }
-  motorGrL->setSpeed(v_m);
-  delay(abs(angle)*ang2t_ml);
-  motorGrL->setSpeed(0);
 }
 
 
@@ -158,7 +132,28 @@ void follow_line(bool keepRight, int count){
   }
 }
 
-//Grabber
+//Move grabber arm
+void grabber_R(int angle){
+  /*
+  if (angle>0){
+    motorGrR->run(BACKWARD);
+  } else {
+    motorGrR->run(FORWARD);
+  }*/
+  motorGrR->run( (angle>=0) ? BACKWARD : FORWARD );
+  motorGrR->setSpeed(v_m);
+  delay(abs(angle)*ang2t_mr);
+  motorGrR->setSpeed(0);
+}
+
+void grabber_L(int angle){
+  motorGrL->run( (angle>=0) ? BACKWARD : FORWARD );
+  motorGrL->setSpeed(v_m);
+  delay(abs(angle)*ang2t_ml);
+  motorGrL->setSpeed(0);
+}
+
+//Grab target
 void grab(){
   forward(-15);
   grabber_R(90);
@@ -171,6 +166,7 @@ void grab(){
   grabber_R(-35);
 }
 
+//Release target
 void dump(){
   grabber_R(90);
   forward(-20);
@@ -179,7 +175,8 @@ void dump(){
 
 //Pulse counter
 void findpulse(){
-  return 1;
+  //Return true if 3 pulse
+  return 1; //Return 1 for now
 }
 
 
@@ -195,7 +192,7 @@ void setup(){
   pinMode(A1, INPUT); //right sensor as input
   pinMode(A2, INPUT); //Side sensor as input
   
-  //Connect to Wifi network:
+  /*//Connect to Wifi network:
   while (status != WL_CONNECTED) {
     Serial.print("Attempting to connect to SSID: ");
     Serial.println(ssid);
@@ -204,9 +201,9 @@ void setup(){
     // wait 5 seconds for connection:
     delay(5000);
   }
-  
   //Start server
   server.begin();
+  */
 }
 
 void loop(){
