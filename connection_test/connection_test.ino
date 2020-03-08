@@ -16,6 +16,7 @@ WiFiServer server(23);
 
 void setup(){
   Serial.begin(9600);
+  server.begin();
 }
 
 void loop(){
@@ -24,7 +25,7 @@ void loop(){
     if (status != WiFi.status()) {
     status = WiFi.status();
     }
-      if (status != WL_CONNECTED){;
+      if (status != WL_CONNECTED){
       while (status != WL_CONNECTED) {
       Serial.print("Attempting to connect to SSID: ");
       Serial.println(ssid);
@@ -33,11 +34,12 @@ void loop(){
       // wait 5 seconds for connection:
       delay(5000);
     }
-    server.begin();
+    //server.begin();
     alreadyConnected = false; 
   }
     //Read connection
   WiFiClient client = server.available();
+  
   if (client) {
     if (!alreadyConnected) {
       // clead out the input buffer:
@@ -54,4 +56,7 @@ void loop(){
   count++;
   server.write(1);
   Serial.println(msg);
+  Serial.println(status);
+  Serial.println(client);
+  delay(2000);
 }
