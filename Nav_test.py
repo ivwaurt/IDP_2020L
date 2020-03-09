@@ -45,7 +45,7 @@ markerV = {'min_area':200,'max_area':450,'min_ratio':2,'max_ratio':4.5,'ca_th':0
 #markerH = {'min_area':80,'max_area':350,'min_ratio':2,'max_ratio':4,'ca_th':0.7}
 
 #Navigation parameters
-min_dist_target = 90   #Note: 3.2 pixels per cm
+min_dist_target = 95   #Note: 3.2 pixels per cm
 tol_dist_point = 3
 ang2t = 7      #Time taken for one degree
 tol_angle = 0.1
@@ -130,7 +130,6 @@ while(cap.isOpened()):
         break
     
     #Attempt to connect to arduino
-    print(connection)
     if connection == False:
         print("Trying to reconnect")
         try:
@@ -231,11 +230,12 @@ while(cap.isOpened()):
     
     motor = [0,0,0,0]
     ArrivedDestination = False
+    allTargetsCollected = False
     
     #Set target
     if state == 1:        #State = 1
         if len(targets)>0:
-            nav['target'] = targets[0]
+            nav['target'] = targets[0][0:2]
             nav['type'] = 't'
         else:
             allTargetsCollected = True
@@ -251,7 +251,7 @@ while(cap.isOpened()):
         nav['target'] = [T_coords[0]-70,T_coords[1]]
         nav['type'] = 'p'
     
-    #Draw line to target
+    #Draw line to target)
     cv.line(output,tuple(agv_coords),tuple(nav['target']),(0,128,255),1)
     
     #Target angle
@@ -324,7 +324,7 @@ while(cap.isOpened()):
     if ArrivedDestination:
         motor += 16   #Set 5th bit to high
     
-    if allTargetsCollected:
+    if allTargetsCollected and state == 3:
         motor += 32   #Set 6th bit to high
     
     print(state,motor,bytes([motor]),distance_to_target,ArrivedDestination)
