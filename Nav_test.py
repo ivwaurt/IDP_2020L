@@ -45,7 +45,7 @@ markerV = {'min_area':200,'max_area':450,'min_ratio':2,'max_ratio':4.5,'ca_th':0
 #markerH = {'min_area':80,'max_area':350,'min_ratio':2,'max_ratio':4,'ca_th':0.7}
 
 #Navigation parameters
-min_dist_target = 95   #Note: 3.2 pixels per cm
+min_dist_target = 91   #Note: 3.2 pixels per cm
 tol_dist_point = 3
 ang2t = 7      #Time taken for one degree
 tol_angle = 0.1
@@ -329,7 +329,7 @@ while(cap.isOpened()):
     
     print(state,motor,bytes([motor]),distance_to_target,ArrivedDestination)
     
-    if state != -1:
+    if state ==1 or state == 3:
         try:
             connection.write(bytes([motor]))
         except:
