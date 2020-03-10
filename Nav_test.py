@@ -8,7 +8,7 @@ import telnetlib
 #Import video
 #cap = cv.VideoCapture("test_cir.avi")
 #cap = cv.VideoCapture("output2.avi")
-cap = cv.VideoCapture(0)
+cap = cv.VideoCapture(1)
 width = int(cap.get(3))
 height =int(cap.get(4))
 print("Vid dimentions: ",width,"x",height)

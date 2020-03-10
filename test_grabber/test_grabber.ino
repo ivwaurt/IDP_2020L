@@ -81,45 +81,41 @@ void forward(double dist){
 }
 
 void grabber_R(int angle){
-  Serial.println("RIGHT");
+  /*
   if (angle>0){
     motorGrR->run(BACKWARD);
   } else {
     motorGrR->run(FORWARD);
-  }
+  }*/
+  motorGrR->run( (angle>=0) ? FORWARD : BACKWARD );
   motorGrR->setSpeed(v_m);
   delay(abs(angle)*ang2t_mr);
   motorGrR->setSpeed(0);
 }
 
 void grabber_L(int angle){
-  Serial.println("LEFT");
-  if (angle>0){
-    motorGrL->run(BACKWARD);
-  } else {
-    motorGrL->run(FORWARD);
-  }
+  motorGrL->run( (angle>=0) ? BACKWARD : FORWARD );
   motorGrL->setSpeed(v_m);
   delay(abs(angle)*ang2t_ml);
   motorGrL->setSpeed(0);
 }
 
 void grab(){
-  Serial.println("TESTGRAB");
-  //forward(-15);
+  forward(-15);
   grabber_R(90);
   grabber_L(120);
-  //forward(20);
+  forward(20);
   grabber_R(-70);
   grabber_R(6);
-  grabber_L(-120);
+  grabber_L(-130);
   delay(1000);
   grabber_R(-35);
 }
 
+//Release target
 void dump(){
   grabber_R(90);
-  //forward(-20);
+  forward(-25);
   grabber_R(-90);
 }
 
