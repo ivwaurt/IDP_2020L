@@ -187,7 +187,6 @@ while(cap.isOpened()):
     targets = sorted(targets, key=lambda x:x[2])
 
     
-    
     #-----Tresholding for AGV------#
     
     mask_th_agv = linrgb(frame,[2,-4,2,0])

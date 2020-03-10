@@ -37,9 +37,9 @@ void loop(){
     //server.begin();
     alreadyConnected = false; 
   }
-    //Read connection
   WiFiClient client = server.available();
   
+  //Read message
   if (client) {
     if (!alreadyConnected) {
       // clead out the input buffer:

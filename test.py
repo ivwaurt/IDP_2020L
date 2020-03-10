@@ -1,3 +1,5 @@
-bytearray =b'\x03\x04'
-print(len(bytearray))
-print(bytearray[-1])
+def nearestmultiple(x,base):
+    return base*round(x/base)
+    
+for i in range(500):
+    print(nearestmultiple(i,15))
