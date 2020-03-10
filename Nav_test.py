@@ -35,7 +35,7 @@ crop = [19,384]
 tunnel = [163,288,288,384]
 
 #Bounding box parameters
-agv_COR = 1.9
+agv_COR = 1.95
 agv = {'w':65,'h':100,'dof':10}
 grp = {'w':90,'h':40,'dof':70}
 markerH = {'min_area':450,'max_area':800,'min_ratio':2,'max_ratio':4.5,'ca_th':0.5}
@@ -171,10 +171,10 @@ while(cap.isOpened()):
         if cv.contourArea(contour)>20:
             tgt_count += 1
             cv.rectangle(output,(x,y),(x+w,y+h),(0,255,255),3)
-            targets.append([int(x+w/2),int(y+h/2)])
+            targets.append([int(x+w/2),int(y+h/2),np.linalg.norm([x+w/2-T_coords[0],y+h/2-T_coords[1]])])
     
     #Sort and use leftmost
-    targets = sorted(targets, key=lambda x:x[1])
+    targets = sorted(targets, key=lambda x:x[2])
 
     
     
@@ -242,7 +242,7 @@ while(cap.isOpened()):
    
     if state == 3:    #State = 3
         if nav['type'] != 'p':
-            nav['target'] = [T_coords[0]-70,T_coords[1]]   #Waypoint
+            nav['target'] = [T_coords[0]-90,T_coords[1]]   #Waypoint
             nav['type'] = 'w'
         else:
             nav['target'] = [T_coords[0]+250,T_coords[1]]   #Final point
