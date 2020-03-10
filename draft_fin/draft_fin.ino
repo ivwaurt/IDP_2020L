@@ -22,7 +22,7 @@ Adafruit_DCMotor *motorGrR = AFMS.getMotor(4);
 //----------------------------
 
 //State of the robot i.e. current objective
-int state = 3; // 0 = line following, 1 = pathfinding ,2 = ....
+int state = 0; // 0 = line following, 1 = pathfinding ,2 = ....
 int targetsCollected = 0;
 bool target3Pulse;
 
@@ -34,6 +34,7 @@ int sensor_s_timer=0;
 bool L_faster_LF;       // 1 = faster, 0 = slower
 bool R_faster_LF;
 double tol=700;
+double tol_s=850;
 
 //Wifi
 char ssid[] = "OnePlus 7 Pro";  //SSID
@@ -51,7 +52,8 @@ int speed_L_current=0;
 int speed_R_current=0;
 int speed_L;
 int speed_R;
-uint8_t v=128;     //Default speed
+uint8_t v=128;
+uint8_t v_f=200;//Default speed
 
 //Motor parameters
 double ang2t = 24;      //time taken to rotate one degree(20.37)
@@ -104,13 +106,12 @@ void forward(double dist){
 
 
 //Line Follower
-void follow_line(bool keepRight, int count){
-  sensor_s_timer = 0;
+void follow_line(bool keepRight, int count,int sensor_s_timer){
   while (1){
     //Sensor readings
     sensor_l = (analogRead(A0)>tol) ? 1 : 0;
     sensor_r = (analogRead(A1)>tol) ? 1 : 0;
-    sensor_s = (analogRead(A2)>tol) ? 1 : 0;
+    sensor_s = (analogRead(A2)>tol_s) ? 1 : 0;
     //Determine motor speeds via boolean logic
     L_faster_LF = keepRight ? (sensor_l || sensor_r) : (!sensor_l);
     R_faster_LF = keepRight ? (!sensor_r) : (sensor_l || sensor_r);  
@@ -122,12 +123,12 @@ void follow_line(bool keepRight, int count){
         motor_R(0);
         return;
       }
-      sensor_s_timer = 50;
+      sensor_s_timer = 30;
     }
     sensor_s_timer --;
     //Update speeds
-    motor_L(L_faster_LF ? v : 0);
-    motor_R(R_faster_LF ? v : 0);
+    motor_L(L_faster_LF ? v_f : 0);
+    motor_R(R_faster_LF ? v_f : 0);
     delay(50);
   }
 }
@@ -140,7 +141,7 @@ void grabber_R(int angle){
   } else {
     motorGrR->run(FORWARD);
   }*/
-  motorGrR->run( (angle>=0) ? BACKWARD : FORWARD );
+  motorGrR->run( (angle>=0) ? FORWARD : BACKWARD );
   motorGrR->setSpeed(v_m);
   delay(abs(angle)*ang2t_mr);
   motorGrR->setSpeed(0);
@@ -156,12 +157,12 @@ void grabber_L(int angle){
 //Grab target
 void grab(){
   forward(-15);
-  grabber_R(90);
-  grabber_L(120);
-  forward(20);
-  grabber_R(-70);
-  grabber_R(6);
-  grabber_L(-120);
+  grabber_R(110);
+  grabber_L(150);
+  forward(22);
+  grabber_R(-95);
+  grabber_R(7);
+  grabber_L(-150);
   delay(1000);
   grabber_R(-35);
 }
@@ -174,7 +175,7 @@ void dump(){
 }
 
 //Pulse counter
-void findpulse(){
+bool findpulse(){
   //Return true if 3 pulse
   return 1; //Return 1 for now
 }
@@ -186,6 +187,7 @@ void setup(){
   //Turn on motorshield and serial
   AFMS.begin();
   Serial.begin(9600);
+  server.begin();
   
   //Sensor inputs
   pinMode(A0, INPUT); //left sensor as input
@@ -224,7 +226,6 @@ void loop(){
       // wait 5 seconds for connection:
       delay(5000);
     }
-    server.begin();
     alreadyConnected = false; 
   }
   
@@ -251,8 +252,8 @@ void loop(){
     //State 0: Line following
     case 0:
       Serial.println(state);
-      motor_R(100);
-      follow_line(1,1);  //keep right and stop on 1st instance sensor_s = 1
+      forward(20);
+      follow_line(1,1,150);  //keep right and stop on 1st instance sensor_s = 1
       forward(15);
       delay(1000);
       state = 1;
@@ -263,9 +264,9 @@ void loop(){
     case 1:
       //Set motor speeds based on inputs
       //0th bit = move/not move, 1st bit = reverse
-      speed_L = (bitRead(msg,3) ? v : 0) * (bitRead(msg,2) ? -1 : 1);
+      speed_L = (bitRead(msg,3) ? v_f : 0) * (bitRead(msg,2) ? -1 : 1);
       //2nd bit = move/not move, 3rd bit = reverse
-      speed_R = (bitRead(msg,1) ? v : 0) * (bitRead(msg,0)? -1 : 1);
+      speed_R = (bitRead(msg,1) ? v_f : 0) * (bitRead(msg,0)? -1 : 1);
       motor_L(speed_L);
       motor_R(speed_R);
       
@@ -282,16 +283,20 @@ void loop(){
     
     //State 2: Picking up target
     case 2:
+      /*
       //Check Robot pulse
       target3Pulse = findpulse();
       if ( (target3Pulse && targetsCollected <2) || (targetsCollected>=2)) {
         //Grab
-        grab()
+        grab();
         targetsCollected++;
         state = 3;
       } else {
         state = 7;
-      }
+      }*/
+      grab();
+      state=3;
+      targetsCollected++;
       break;
       
       
@@ -301,7 +306,7 @@ void loop(){
       //Sensor readings
       sensor_l = (analogRead(A0)>tol) ? 1 : 0;
       sensor_r = (analogRead(A1)>tol) ? 1 : 0;
-      sensor_s = (analogRead(A2)>tol) ? 1 : 0;
+      sensor_s = (analogRead(A2)>tol_s) ? 1 : 0;
       
       //0th bit = move/not move, 1st bit = reverse
       speed_L = (bitRead(msg,3) ? v : 0) * (bitRead(msg,2) ? -1 : 1);
@@ -312,7 +317,7 @@ void loop(){
       motor_R(speed_R);
       
       //End condition
-      if (sensor_r || sensor_l){
+      if (sensor_r && sensor_l){
         state = 4;
         motor_L(0);
         motor_R(0);
@@ -325,17 +330,17 @@ void loop(){
       forward(10);
       delay(1000);
       rotate(10);
-      follow_line(1,1);  //keep right and stop on 1st instance sensor_s = 1
+      follow_line(1,1,0);  //keep right and stop on 1st instance sensor_s = 1
       forward(10);
       delay(1000);
       //Dump robot mechanism
       dump();
-      rotate(-190);
+      
       
       //If all target collected, go to state 6
-      targetsCollected = 4;  // Set all targets colleted for now
+      //targetsCollected = 4;  // Set all targets colleted for now
       
-      if (targetsCollected >= 4){
+      if (targetsCollected >= 3){
         state = 6;
       } else {
         state = 5;
@@ -344,19 +349,24 @@ void loop(){
       
     //State 5: Line follow to grey dot
     case 5:
-      follow_line(0,2);
+      rotate(-200);
+      follow_line(0,1,150);
       forward(15);
       delay(1000);
       state = 1;
+      client.flush();
       msg=0;
+      break;
     
     //State 6: End- Return to starting area
     case 6:
-      follow_line(0,1);
-      forward(15);
-      follow_line(1,1);
-      forward(10);
+      rotate(-150);
+      forward(45);
+      delay(1000);
+      follow_line(1,1,0);
+      forward(30);
       state = 8;
+      break;
     
     //State 7 Return to grey dot and try again
     case 7:
@@ -374,9 +384,12 @@ void loop(){
         state = 1;
         delay(1000);
       }
+      break;
     
     //State 8: end
     case 8:
+        motor_L(0);
+        motor_R(0);
         //do nothing
         break;
     
