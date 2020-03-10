@@ -22,6 +22,8 @@ ip = "192.168.43.224"
 port = 23
 connection = False
 
+#Start trigger
+StartTrigger = input("Enter any key")
 
 #------------Parameters-----------#
 
@@ -69,7 +71,10 @@ allTargetsCollected = False
 #Returns angle between two vectors
 def angle(v1,v2):
     return np.arctan2(np.cross(v2,v1),np.dot(v2,v1))
-    
+
+def nearestmultiple(x,base):
+    return base*round(x/base)
+
 def linrgb(img,a):
     if(len(a))==3:
         a.append(0)
@@ -171,9 +176,14 @@ while(cap.isOpened()):
         if cv.contourArea(contour)>20:
             tgt_count += 1
             cv.rectangle(output,(x,y),(x+w,y+h),(0,255,255),3)
-            targets.append([int(x+w/2),int(y+h/2),np.linalg.norm([x+w/2-T_coords[0],y+h/2-T_coords[1]])])
+            targets.append([
+                int(x+w/2),
+                int(y+h/2),
+                nearestmultiple( np.linalg.norm([x+w/2-T_coords[0],y+h/2-T_coords[1]] ,30)
+            )])
     
     #Sort and use leftmost
+    targets = sorted(targets, key=lambda x:x[1])
     targets = sorted(targets, key=lambda x:x[2])
 
     
