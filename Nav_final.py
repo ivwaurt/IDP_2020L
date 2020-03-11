@@ -7,7 +7,7 @@ import telnetlib
 #Import video
 #cap = cv.VideoCapture("test_cir.avi")
 #cap = cv.VideoCapture("output2.avi")
-cap = cv.VideoCapture(1)
+cap = cv.VideoCapture(0)
 width = int(cap.get(3))
 height =int(cap.get(4))
 print("Vid dimentions: ",width,"x",height)
@@ -23,7 +23,7 @@ StartTrigger = input("Enter any key")
 #------------Parameters-----------#
 
 #Cropping parameters
-crop = [19,384]
+crop = [19,320]
 tunnel = [163,288,288,384]
 
 #Bounding box parameters
@@ -47,7 +47,7 @@ motor = [0,0,0,0]   #Flag #:[Left motor On, Left motor reverse, Right motor on, 
 
 
 action = {'mode':'none','timer':0,'dir':1}   #Mode: none,fwd,rot,stop      dir: 0:fwd, 1:rev
-nav = {'type':'t','target' : [0,0]} #Target (t), Waypoint(w), Endpoint(e)
+nav = {'type':'t','target' : [70,250]} #Target (t), Waypoint(w), Endpoint(e)
 
 targets = []
 state = -1
@@ -164,8 +164,8 @@ while(cap.isOpened()):
             targets.append([
                 int(x+w/2),
                 int(y+h/2),
-                nearestmultiple( np.linalg.norm([x+w/2-T_coords[0],y+h/2-T_coords[1]] ,30)
-            )])
+                nearestmultiple( np.linalg.norm([x+w/2-T_coords[0],y+h/2-T_coords[1]]) ,30)
+            ])
     
     #Sort and use leftmost
     targets = sorted(targets, key=lambda x:x[1])
@@ -232,6 +232,7 @@ while(cap.isOpened()):
             nav['target'] = targets[0][0:2]
             nav['type'] = 't'
         else:
+            nav = {'type':'t','target' : [70,250]}
             allTargetsCollected = True
    
     if state == 3:    #State = 3
