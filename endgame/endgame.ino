@@ -242,7 +242,6 @@ void loop(){
       forward(20);
       follow_line(1,150);
       forward(15);
-      delay(1000);
       state = 1;
     break;
     
@@ -257,7 +256,6 @@ void loop(){
         motor_L(0);
         motor_R(0);
         state = 2;
-        delay(1000);
       }
       
     break;
@@ -289,16 +287,12 @@ void loop(){
       
     //State 4: Line follow to charging/service area
     case 4:
-      delay(1000);
       forward(10);
-      delay(1000);
       rotate(10);
       follow_line(1,0);  //keep right and stop on 1st instance sensor_s = 1
-      forward(10);
-      delay(1000);
       //Dump robot mechanism
       dump();
-      
+      forward(10);
       
       //If all target collected, go to state 6      
       if (targetsCollected >= 3){
@@ -313,7 +307,6 @@ void loop(){
       rotate(-200);
       follow_line(0,150);
       forward(15);
-      delay(1000);
       state = 1;
       client.flush();
       msg=0;
@@ -323,7 +316,6 @@ void loop(){
     case 6:
       rotate(-150);
       forward(45);
-      delay(1000);
       follow_line(1,0);
       forward(30);
       state = 8;
